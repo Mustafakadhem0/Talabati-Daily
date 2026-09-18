@@ -49,15 +49,15 @@ class MainActivity : AppCompatActivity() {
         }
 
         val scrollView = ScrollView(this).apply {
-            isFillViewport = true
-            addView(
-                root,
-                ScrollView.LayoutParams(
-                    ScrollView.LayoutParams.MATCH_PARENT,
-                    ScrollView.LayoutParams.WRAP_CONTENT
-                )
-            )
-        }
+    isFillViewport = true
+    addView(
+        root,
+        LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+    )
+}
 
         setContentView(scrollView)
 
