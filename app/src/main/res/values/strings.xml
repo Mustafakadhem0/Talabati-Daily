@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">طلباتي اليومية</string>
+
+    <string name="welcome_title">طلباتي اليومية</string>
+    <string name="welcome_subtitle">إدارة طلبات الصيدلية بسهولة</string>
+    <string name="start">هيا نبدأ</string>
+
+    <string name="amazon">أمازون</string>
+    <string name="raya">راية</string>
+
+    <string name="quantity">الكمية</string>
+    <string name="next">التالي</string>
+    <string name="previous">السابق</string>
+    <string name="skip">تخطي</string>
+
+    <string name="finish_order">إنهاء الطلبية</string>
+    <string name="copy_order">نسخ الطلبية</string>
+    <string name="new_order">طلبية جديدة</string>
+
+    <string name="medicines_database">قاعدة بيانات العلاجات</string>
+    <string name="add_medicine">إضافة علاج</string>
+    <string name="edit_medicine">تعديل العلاج</string>
+    <string name="delete_medicine">حذف العلاج</string>
+    <string name="medicine_name">اسم العلاج</string>
+    <string name="search_medicine">بحث عن علاج</string>
+
+    <string name="orders">الطلبات</string>
+    <string name="settings">الإعدادات</string>
+    <string name="save">حفظ</string>
+    <string name="cancel">إلغاء</string>
+
+    <string name="amazon_order">طلبية أمازون</string>
+    <string name="raya_order">طلبية راية</string>
+
+    <string name="order_copied">تم نسخ الطلبية</string>
+    <string name="no_medicines">لا توجد علاجات في قاعدة البيانات</string>
+    <string name="no_order">لا توجد مواد في الطلبية</string>
+
+</resources>
