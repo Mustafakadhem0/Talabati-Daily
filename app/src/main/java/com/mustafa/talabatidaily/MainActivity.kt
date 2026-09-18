@@ -31,7 +31,7 @@ class MainActivity : AppCompatActivity() {
     private val blue = Color.rgb(21, 101, 192)
     private val green = Color.rgb(46, 125, 50)
     private val red = Color.rgb(198, 40, 40)
-    private val background = Color.rgb(247, 248, 250)
+    private val appBackgroundColor = Color.rgb(247, 248, 250)
     private val darkText = Color.rgb(30, 30, 30)
     private val grayText = Color.rgb(100, 100, 100)
 
