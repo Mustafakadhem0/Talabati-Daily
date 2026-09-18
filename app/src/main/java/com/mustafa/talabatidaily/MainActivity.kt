@@ -31,6 +31,7 @@ class MainActivity : AppCompatActivity() {
     private val blue = Color.rgb(21, 101, 192)
     private val green = Color.rgb(46, 125, 50)
     private val red = Color.rgb(198, 40, 40)
+    private val purple = Color.rgb(90, 70, 160)
     private val appBackgroundColor = Color.rgb(247, 248, 250)
     private val darkText = Color.rgb(30, 30, 30)
     private val grayText = Color.rgb(100, 100, 100)
@@ -45,34 +46,28 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
             setPadding(32, 45, 32, 50)
-            setBackgroundColor(background)
+            setBackgroundColor(appBackgroundColor)
         }
 
         val scrollView = ScrollView(this).apply {
-    isFillViewport = true
-    addView(
-        root,
-        LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        )
-    )
-}
+            isFillViewport = true
+            addView(root)
+        }
 
         setContentView(scrollView)
 
         showHome()
     }
 
-    // =========================================================
+    // =====================================================
     // الصفحة الرئيسية
-    // =========================================================
+    // =====================================================
 
     private fun showHome() {
         hideKeyboard()
         root.removeAllViews()
 
-        addSpace(35)
+        addSpace(30)
 
         addTitle("طلباتي اليومية")
 
@@ -82,12 +77,10 @@ class MainActivity : AppCompatActivity() {
             grayText
         )
 
-        addSpace(15)
-
-        val count = medicineStorage.count()
+        addSpace(10)
 
         addText(
-            "قاعدة البيانات: $count علاج",
+            "عدد العلاجات: ${medicineStorage.count()}",
             15f,
             grayText
         )
@@ -102,11 +95,11 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
-        addSpace(45)
+        addSpace(40)
 
         addButton(
-            text = "هيا نبدأ",
-            color = blue
+            "هيا نبدأ",
+            blue
         ) {
             startOrder()
         }
@@ -114,8 +107,8 @@ class MainActivity : AppCompatActivity() {
         addSpace(15)
 
         addButton(
-            text = "قاعدة بيانات العلاجات",
-            color = green
+            "قاعدة بيانات العلاجات",
+            green
         ) {
             showDatabase()
         }
@@ -123,36 +116,37 @@ class MainActivity : AppCompatActivity() {
         addSpace(15)
 
         addButton(
-            text = "الطلبية الحالية",
-            color = Color.rgb(90, 70, 160)
+            "الطلبية الحالية",
+            purple
         ) {
             showCurrentOrder()
         }
 
-        addSpace(15)
-
         if (orderCount > 0) {
+            addSpace(15)
+
             addButton(
-                text = "بدء طلبية جديدة",
-                color = red
+                "بدء طلبية جديدة",
+                red
             ) {
                 confirmNewOrder()
             }
         }
     }
 
-    // =========================================================
+    // =====================================================
     // قاعدة البيانات
-    // =========================================================
+    // =====================================================
 
     private fun showDatabase(search: String = "") {
         hideKeyboard()
         root.removeAllViews()
 
         addTopBar(
-            title = "قاعدة بيانات العلاجات",
-            onBack = { showHome() }
-        )
+            "قاعدة بيانات العلاجات"
+        ) {
+            showHome()
+        }
 
         addSpace(15)
 
@@ -161,13 +155,9 @@ class MainActivity : AppCompatActivity() {
             textSize = 17f
             setSingleLine(true)
             setText(search)
-            setPadding(25, 10, 25, 10)
         }
 
-        root.addView(
-            searchInput,
-            matchWrap()
-        )
+        root.addView(searchInput, matchWrap())
 
         addSpace(10)
 
@@ -207,16 +197,11 @@ class MainActivity : AppCompatActivity() {
         addSpace(10)
 
         if (medicines.isEmpty()) {
-
             addText(
-                if (search.isBlank())
-                    "لا توجد علاجات بعد.\nاضغط «إضافة علاج جديد» وابدأ بإدخال قاعدة البيانات."
-                else
-                    "لم يتم العثور على علاج بهذا الاسم.",
-                17f,
+                "لا توجد علاجات.",
+                18f,
                 grayText
             )
-
             return
         }
 
@@ -224,7 +209,7 @@ class MainActivity : AppCompatActivity() {
 
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
-                setPadding(22, 18, 22, 18)
+                setPadding(20, 18, 20, 18)
                 setBackgroundColor(Color.WHITE)
             }
 
@@ -232,17 +217,17 @@ class MainActivity : AppCompatActivity() {
                 text = "${index + 1}. ${medicine.name}"
                 textSize = 19f
                 setTextColor(darkText)
-                gravity = Gravity.START
             }
 
             card.addView(name, matchWrap())
 
             if (medicine.defaultSupplier.isNotBlank()) {
                 val supplier = TextView(this).apply {
-                    text = "المذخر الافتراضي: ${medicine.defaultSupplier}"
+                    text = "المذخر: ${medicine.defaultSupplier}"
                     textSize = 14f
                     setTextColor(grayText)
                 }
+
                 card.addView(supplier, matchWrap())
             }
 
@@ -252,6 +237,7 @@ class MainActivity : AppCompatActivity() {
                     textSize = 14f
                     setTextColor(grayText)
                 }
+
                 card.addView(qty, matchWrap())
             }
 
@@ -261,17 +247,18 @@ class MainActivity : AppCompatActivity() {
                     textSize = 14f
                     setTextColor(grayText)
                 }
+
                 card.addView(notes, matchWrap())
             }
 
-            val buttons = LinearLayout(this).apply {
+            val row = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER
             }
 
             val edit = Button(this).apply {
                 text = "تعديل"
                 isAllCaps = false
+
                 setOnClickListener {
                     showMedicineEditor(medicine)
                 }
@@ -281,12 +268,13 @@ class MainActivity : AppCompatActivity() {
                 text = "حذف"
                 isAllCaps = false
                 setTextColor(red)
+
                 setOnClickListener {
                     confirmDeleteMedicine(medicine)
                 }
             }
 
-            buttons.addView(
+            row.addView(
                 edit,
                 LinearLayout.LayoutParams(
                     0,
@@ -295,7 +283,7 @@ class MainActivity : AppCompatActivity() {
                 )
             )
 
-            buttons.addView(
+            row.addView(
                 delete,
                 LinearLayout.LayoutParams(
                     0,
@@ -304,7 +292,7 @@ class MainActivity : AppCompatActivity() {
                 )
             )
 
-            card.addView(buttons, matchWrap())
+            card.addView(row, matchWrap())
 
             root.addView(card, matchWrap())
 
@@ -312,13 +300,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // =========================================================
+    // =====================================================
     // إضافة / تعديل علاج
-    // =========================================================
+    // =====================================================
 
-    private fun showMedicineEditor(
-        medicine: Medicine?
-    ) {
+    private fun showMedicineEditor(medicine: Medicine?) {
         hideKeyboard()
         root.removeAllViews()
 
@@ -326,7 +312,7 @@ class MainActivity : AppCompatActivity() {
 
         addTopBar(
             if (editing) "تعديل العلاج"
-            else "إضافة علاج جديد"
+            else "إضافة علاج"
         ) {
             showDatabase()
         }
@@ -340,7 +326,7 @@ class MainActivity : AppCompatActivity() {
         )
 
         val nameInput = EditText(this).apply {
-            hint = "مثال: Neurobin amp"
+            hint = "اسم العلاج"
             textSize = 18f
             setSingleLine(true)
             setText(medicine?.name ?: "")
@@ -361,12 +347,13 @@ class MainActivity : AppCompatActivity() {
 
         val supplierStatus = TextView(this).apply {
             text =
-                if (selectedSupplier.isBlank())
+                if (selectedSupplier.isBlank()) {
                     "غير محدد"
-                else
+                } else {
                     selectedSupplier
+                }
 
-            textSize = 17f
+            textSize = 18f
             gravity = Gravity.CENTER
             setPadding(10, 15, 10, 15)
         }
@@ -380,6 +367,7 @@ class MainActivity : AppCompatActivity() {
         val amazon = Button(this).apply {
             text = "أمازون"
             isAllCaps = false
+
             setOnClickListener {
                 selectedSupplier = "أمازون"
                 supplierStatus.text = "أمازون"
@@ -390,6 +378,7 @@ class MainActivity : AppCompatActivity() {
         val raya = Button(this).apply {
             text = "راية"
             isAllCaps = false
+
             setOnClickListener {
                 selectedSupplier = "راية"
                 supplierStatus.text = "راية"
@@ -420,7 +409,7 @@ class MainActivity : AppCompatActivity() {
         addSpace(15)
 
         addText(
-            "الكمية الافتراضية - اختياري",
+            "الكمية الافتراضية",
             16f,
             darkText
         )
@@ -445,13 +434,13 @@ class MainActivity : AppCompatActivity() {
         addSpace(15)
 
         addText(
-            "ملاحظات - اختياري",
+            "ملاحظات",
             16f,
             darkText
         )
 
         val notesInput = EditText(this).apply {
-            hint = "مثلاً الشركة أو شكل العبوة"
+            hint = "اختياري"
             textSize = 17f
             minLines = 2
             setText(medicine?.notes ?: "")
@@ -471,14 +460,13 @@ class MainActivity : AppCompatActivity() {
                 nameInput.text.toString().trim()
 
             if (name.isBlank()) {
-                toast("اكتب اسم العلاج أولاً")
+                toast("اكتب اسم العلاج")
                 return@addButton
             }
 
             val quantity =
                 quantityInput.text
                     .toString()
-                    .trim()
                     .toIntOrNull() ?: 0
 
             val notes =
@@ -502,10 +490,8 @@ class MainActivity : AppCompatActivity() {
                 medicineStorage.updateMedicine(
                     medicine.copy(
                         name = name,
-                        defaultSupplier =
-                            selectedSupplier,
-                        defaultQuantity =
-                            quantity,
+                        defaultSupplier = selectedSupplier,
+                        defaultQuantity = quantity,
                         notes = notes
                     )
                 )
@@ -529,10 +515,11 @@ class MainActivity : AppCompatActivity() {
     private fun confirmDeleteMedicine(
         medicine: Medicine
     ) {
+
         AlertDialog.Builder(this)
             .setTitle("حذف العلاج")
             .setMessage(
-                "هل تريد حذف:\n${medicine.name} ؟"
+                "هل تريد حذف ${medicine.name}؟"
             )
             .setPositiveButton("حذف") { _, _ ->
 
@@ -545,15 +532,19 @@ class MainActivity : AppCompatActivity() {
                 )
 
                 toast("تم حذف العلاج")
+
                 showDatabase()
             }
-            .setNegativeButton("إلغاء", null)
+            .setNegativeButton(
+                "إلغاء",
+                null
+            )
             .show()
     }
 
-    // =========================================================
+    // =====================================================
     // بدء الطلبية
-    // =========================================================
+    // =====================================================
 
     private fun startOrder() {
 
@@ -567,7 +558,7 @@ class MainActivity : AppCompatActivity() {
             AlertDialog.Builder(this)
                 .setTitle("قاعدة البيانات فارغة")
                 .setMessage(
-                    "أضف العلاجات أولاً ثم ابدأ الطلبية."
+                    "أضف العلاجات أولاً."
                 )
                 .setPositiveButton(
                     "إضافة علاج"
@@ -596,9 +587,9 @@ class MainActivity : AppCompatActivity() {
         showOrderMedicine()
     }
 
-    // =========================================================
-    // شاشة العلاج الواحد
-    // =========================================================
+    // =====================================================
+    // العلاج الحالي
+    // =====================================================
 
     private fun showOrderMedicine() {
         hideKeyboard()
@@ -609,19 +600,18 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        if (currentIndex >= currentMedicines.size) {
-            currentIndex =
-                currentMedicines.size - 1
-        }
-
         if (currentIndex < 0) {
             currentIndex = 0
+        }
+
+        if (currentIndex >= currentMedicines.size) {
+            currentIndex = currentMedicines.size - 1
         }
 
         val medicine =
             currentMedicines[currentIndex]
 
-        val existingItem =
+        val existing =
             orderStorage
                 .getOrderItems()
                 .firstOrNull {
@@ -629,9 +619,10 @@ class MainActivity : AppCompatActivity() {
                 }
 
         addTopBar(
-            "الطلبية",
-            onBack = { showHome() }
-        )
+            "الطلبية"
+        ) {
+            showHome()
+        }
 
         addSpace(10)
 
@@ -641,9 +632,9 @@ class MainActivity : AppCompatActivity() {
             grayText
         )
 
-        addSpace(30)
+        addSpace(25)
 
-        val medicineName = TextView(this).apply {
+        val name = TextView(this).apply {
             text = medicine.name
             textSize = 29f
             gravity = Gravity.CENTER
@@ -652,16 +643,11 @@ class MainActivity : AppCompatActivity() {
             setBackgroundColor(Color.WHITE)
         }
 
-        root.addView(
-            medicineName,
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-        )
+        root.addView(name, matchWrap())
 
         if (medicine.notes.isNotBlank()) {
             addSpace(10)
+
             addText(
                 medicine.notes,
                 15f,
@@ -684,12 +670,12 @@ class MainActivity : AppCompatActivity() {
             gravity = Gravity.CENTER
             setSingleLine(true)
 
-            val quantity =
-                existingItem?.quantity
+            val qty =
+                existing?.quantity
                     ?: medicine.defaultQuantity
 
-            if (quantity > 0) {
-                setText(quantity.toString())
+            if (qty > 0) {
+                setText(qty.toString())
                 selectAll()
             }
         }
@@ -711,61 +697,81 @@ class MainActivity : AppCompatActivity() {
         )
 
         var selectedSupplier =
-            existingItem?.supplier
+            existing?.supplier
                 ?: medicine.defaultSupplier
 
         val supplierStatus = TextView(this).apply {
+
             text =
-                if (selectedSupplier.isBlank())
+                if (selectedSupplier.isBlank()) {
                     "لم يتم اختيار مذخر"
-                else
+                } else {
                     "المذخر: $selectedSupplier"
+                }
 
             textSize = 18f
             gravity = Gravity.CENTER
             setPadding(10, 18, 10, 18)
 
             when (selectedSupplier) {
-                "أمازون" -> setTextColor(blue)
-                "راية" -> setTextColor(green)
-                else -> setTextColor(grayText)
+                "أمازون" ->
+                    setTextColor(blue)
+
+                "راية" ->
+                    setTextColor(green)
+
+                else ->
+                    setTextColor(grayText)
             }
         }
 
-        root.addView(supplierStatus, matchWrap())
+        root.addView(
+            supplierStatus,
+            matchWrap()
+        )
 
-        val suppliers = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-        }
+        val supplierRow =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.HORIZONTAL
+            }
 
-        val amazonButton = Button(this).apply {
+        val amazon = Button(this).apply {
             text = "أمازون"
             textSize = 18f
             isAllCaps = false
 
             setOnClickListener {
                 selectedSupplier = "أمازون"
+
                 supplierStatus.text =
                     "المذخر: أمازون"
-                supplierStatus.setTextColor(blue)
+
+                supplierStatus.setTextColor(
+                    blue
+                )
             }
         }
 
-        val rayaButton = Button(this).apply {
+        val raya = Button(this).apply {
             text = "راية"
             textSize = 18f
             isAllCaps = false
 
             setOnClickListener {
                 selectedSupplier = "راية"
+
                 supplierStatus.text =
                     "المذخر: راية"
-                supplierStatus.setTextColor(green)
+
+                supplierStatus.setTextColor(
+                    green
+                )
             }
         }
 
-        suppliers.addView(
-            amazonButton,
+        supplierRow.addView(
+            amazon,
             LinearLayout.LayoutParams(
                 0,
                 140,
@@ -773,8 +779,8 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        suppliers.addView(
-            rayaButton,
+        supplierRow.addView(
+            raya,
             LinearLayout.LayoutParams(
                 0,
                 140,
@@ -782,7 +788,10 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        root.addView(suppliers, matchWrap())
+        root.addView(
+            supplierRow,
+            matchWrap()
+        )
 
         addSpace(25)
 
@@ -791,20 +800,41 @@ class MainActivity : AppCompatActivity() {
             green
         ) {
 
-            saveMedicineToOrder(
-                medicine,
-                quantityInput,
-                selectedSupplier
-            ) {
-                goNext()
+            val quantity =
+                quantityInput.text
+                    .toString()
+                    .toIntOrNull() ?: 0
+
+            if (quantity <= 0) {
+                toast("اكتب الكمية")
+                return@addButton
             }
+
+            if (selectedSupplier.isBlank()) {
+                toast("اختر أمازون أو راية")
+                return@addButton
+            }
+
+            orderStorage.saveOrderItem(
+                OrderItem(
+                    medicineId = medicine.id,
+                    medicineName = medicine.name,
+                    quantity = quantity,
+                    supplier = selectedSupplier,
+                    notes = medicine.notes
+                )
+            )
+
+            goNext()
         }
 
         addSpace(10)
 
-        val nav = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-        }
+        val navigation =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.HORIZONTAL
+            }
 
         val previous = Button(this).apply {
             text = "السابق"
@@ -813,7 +843,7 @@ class MainActivity : AppCompatActivity() {
 
             setOnClickListener {
 
-                saveOptionalOrderItem(
+                saveOptionalItem(
                     medicine,
                     quantityInput,
                     selectedSupplier
@@ -821,9 +851,11 @@ class MainActivity : AppCompatActivity() {
 
                 if (currentIndex > 0) {
                     currentIndex--
+
                     orderStorage.saveCurrentIndex(
                         currentIndex
                     )
+
                     showOrderMedicine()
                 }
             }
@@ -838,7 +870,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        nav.addView(
+        navigation.addView(
             previous,
             LinearLayout.LayoutParams(
                 0,
@@ -847,7 +879,7 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        nav.addView(
+        navigation.addView(
             skip,
             LinearLayout.LayoutParams(
                 0,
@@ -856,15 +888,19 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        root.addView(nav, matchWrap())
+        root.addView(
+            navigation,
+            matchWrap()
+        )
 
         addSpace(15)
 
         addButton(
             "مراجعة الطلبية",
-            Color.rgb(90, 70, 160)
+            purple
         ) {
-            saveOptionalOrderItem(
+
+            saveOptionalItem(
                 medicine,
                 quantityInput,
                 selectedSupplier
@@ -874,43 +910,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun saveMedicineToOrder(
-        medicine: Medicine,
-        quantityInput: EditText,
-        supplier: String,
-        afterSave: () -> Unit
-    ) {
-
-        val quantity =
-            quantityInput.text
-                .toString()
-                .trim()
-                .toIntOrNull() ?: 0
-
-        if (quantity <= 0) {
-            toast("اكتب الكمية المطلوبة")
-            return
-        }
-
-        if (supplier.isBlank()) {
-            toast("اختر أمازون أو راية")
-            return
-        }
-
-        orderStorage.saveOrderItem(
-            OrderItem(
-                medicineId = medicine.id,
-                medicineName = medicine.name,
-                quantity = quantity,
-                supplier = supplier,
-                notes = medicine.notes
-            )
-        )
-
-        afterSave()
-    }
-
-    private fun saveOptionalOrderItem(
+    private fun saveOptionalItem(
         medicine: Medicine,
         quantityInput: EditText,
         supplier: String
@@ -919,13 +919,13 @@ class MainActivity : AppCompatActivity() {
         val quantity =
             quantityInput.text
                 .toString()
-                .trim()
                 .toIntOrNull() ?: 0
 
         if (
             quantity > 0 &&
             supplier.isNotBlank()
         ) {
+
             orderStorage.saveOrderItem(
                 OrderItem(
                     medicineId = medicine.id,
@@ -960,7 +960,7 @@ class MainActivity : AppCompatActivity() {
             AlertDialog.Builder(this)
                 .setTitle("اكتملت القائمة")
                 .setMessage(
-                    "وصلت إلى آخر علاج.\nهل تريد مراجعة الطلبية؟"
+                    "وصلت إلى آخر علاج."
                 )
                 .setPositiveButton(
                     "مراجعة الطلبية"
@@ -968,7 +968,7 @@ class MainActivity : AppCompatActivity() {
                     showCurrentOrder()
                 }
                 .setNegativeButton(
-                    "الصفحة الرئيسية"
+                    "الرئيسية"
                 ) { _, _ ->
                     showHome()
                 }
@@ -976,18 +976,19 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // =========================================================
-    // الطلبية الحالية
-    // =========================================================
+    // =====================================================
+    // مراجعة الطلبية
+    // =====================================================
 
     private fun showCurrentOrder() {
         hideKeyboard()
         root.removeAllViews()
 
         addTopBar(
-            "الطلبية الحالية",
-            onBack = { showHome() }
-        )
+            "الطلبية الحالية"
+        ) {
+            showHome()
+        }
 
         val items =
             orderStorage.getOrderItems()
@@ -1005,7 +1006,7 @@ class MainActivity : AppCompatActivity() {
         if (items.isEmpty()) {
 
             addText(
-                "لا توجد مواد في الطلبية حالياً.",
+                "لا توجد مواد في الطلبية.",
                 18f,
                 grayText
             )
@@ -1013,7 +1014,7 @@ class MainActivity : AppCompatActivity() {
             addSpace(20)
 
             addButton(
-                "العودة إلى الطلبية",
+                "ابدأ الطلبية",
                 blue
             ) {
                 startOrder()
@@ -1042,8 +1043,6 @@ class MainActivity : AppCompatActivity() {
             amazon.forEach {
                 addOrderItemCard(it)
             }
-
-            addSpace(15)
         }
 
         if (raya.isNotEmpty()) {
@@ -1056,9 +1055,9 @@ class MainActivity : AppCompatActivity() {
             raya.forEach {
                 addOrderItemCard(it)
             }
-
-            addSpace(15)
         }
+
+        addSpace(20)
 
         addButton(
             "نسخ الطلبية كاملة",
@@ -1069,9 +1068,9 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
-        addSpace(10)
-
         if (amazon.isNotEmpty()) {
+            addSpace(10)
+
             addButton(
                 "نسخ طلبية أمازون",
                 blue
@@ -1081,11 +1080,11 @@ class MainActivity : AppCompatActivity() {
                     amazon
                 )
             }
-
-            addSpace(10)
         }
 
         if (raya.isNotEmpty()) {
+            addSpace(10)
+
             addButton(
                 "نسخ طلبية راية",
                 green
@@ -1095,13 +1094,13 @@ class MainActivity : AppCompatActivity() {
                     raya
                 )
             }
-
-            addSpace(10)
         }
+
+        addSpace(10)
 
         addButton(
             "مشاركة الطلبية",
-            Color.rgb(90, 70, 160)
+            purple
         ) {
             shareOrder(
                 orderStorage.buildOrderText()
@@ -1111,7 +1110,7 @@ class MainActivity : AppCompatActivity() {
         addSpace(10)
 
         addButton(
-            "متابعة المرور على العلاجات",
+            "متابعة الطلبية",
             Color.DKGRAY
         ) {
             startOrder()
@@ -1131,25 +1130,42 @@ class MainActivity : AppCompatActivity() {
         item: OrderItem
     ) {
 
-        val card = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(20, 15, 20, 15)
-            setBackgroundColor(Color.WHITE)
-        }
+        val card =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.VERTICAL
 
-        val name = TextView(this).apply {
-            text =
-                "${item.medicineName}  ×  ${item.quantity}"
+                setPadding(
+                    20,
+                    15,
+                    20,
+                    15
+                )
 
-            textSize = 18f
-            setTextColor(darkText)
-        }
+                setBackgroundColor(
+                    Color.WHITE
+                )
+            }
 
-        card.addView(name, matchWrap())
+        val name =
+            TextView(this).apply {
+                text =
+                    "${item.medicineName} × ${item.quantity}"
 
-        val buttons = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-        }
+                textSize = 18f
+                setTextColor(darkText)
+            }
+
+        card.addView(
+            name,
+            matchWrap()
+        )
+
+        val row =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.HORIZONTAL
+            }
 
         val edit = Button(this).apply {
             text = "تعديل"
@@ -1167,28 +1183,15 @@ class MainActivity : AppCompatActivity() {
 
             setOnClickListener {
 
-                AlertDialog.Builder(this@MainActivity)
-                    .setTitle("حذف من الطلبية")
-                    .setMessage(item.medicineName)
-                    .setPositiveButton(
-                        "حذف"
-                    ) { _, _ ->
+                orderStorage.removeOrderItem(
+                    item.medicineId
+                )
 
-                        orderStorage.removeOrderItem(
-                            item.medicineId
-                        )
-
-                        showCurrentOrder()
-                    }
-                    .setNegativeButton(
-                        "إلغاء",
-                        null
-                    )
-                    .show()
+                showCurrentOrder()
             }
         }
 
-        buttons.addView(
+        row.addView(
             edit,
             LinearLayout.LayoutParams(
                 0,
@@ -1197,7 +1200,7 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        buttons.addView(
+        row.addView(
             delete,
             LinearLayout.LayoutParams(
                 0,
@@ -1206,73 +1209,108 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        card.addView(buttons, matchWrap())
+        card.addView(
+            row,
+            matchWrap()
+        )
 
-        root.addView(card, matchWrap())
+        root.addView(
+            card,
+            matchWrap()
+        )
 
         addSpace(8)
     }
 
-    // =========================================================
-    // تعديل مادة داخل الطلبية
-    // =========================================================
+    // =====================================================
+    // تعديل مادة بالطلبية
+    // =====================================================
 
     private fun editOrderItem(
         item: OrderItem
     ) {
 
-        val layout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(45, 15, 45, 10)
-        }
+        val layout =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.VERTICAL
 
-        val quantity = EditText(this).apply {
-            hint = "الكمية"
-            inputType = InputType.TYPE_CLASS_NUMBER
-            setText(item.quantity.toString())
-            selectAll()
-        }
+                setPadding(
+                    40,
+                    10,
+                    40,
+                    10
+                )
+            }
+
+        val quantity =
+            EditText(this).apply {
+                inputType =
+                    InputType.TYPE_CLASS_NUMBER
+
+                setText(
+                    item.quantity.toString()
+                )
+
+                selectAll()
+            }
 
         layout.addView(quantity)
 
-        var supplier = item.supplier
+        var supplier =
+            item.supplier
 
-        val status = TextView(this).apply {
-            text = "المذخر: $supplier"
-            textSize = 17f
-            gravity = Gravity.CENTER
-            setPadding(5, 15, 5, 15)
-        }
+        val status =
+            TextView(this).apply {
+                text =
+                    "المذخر: $supplier"
+
+                gravity =
+                    Gravity.CENTER
+
+                textSize = 17f
+
+                setPadding(
+                    5,
+                    15,
+                    5,
+                    15
+                )
+            }
 
         layout.addView(status)
 
-        val supplierRow =
+        val row =
             LinearLayout(this).apply {
                 orientation =
                     LinearLayout.HORIZONTAL
             }
 
-        val amazon = Button(this).apply {
-            text = "أمازون"
-            isAllCaps = false
-            setOnClickListener {
-                supplier = "أمازون"
-                status.text =
-                    "المذخر: أمازون"
-            }
-        }
+        val amazon =
+            Button(this).apply {
+                text = "أمازون"
+                isAllCaps = false
 
-        val raya = Button(this).apply {
-            text = "راية"
-            isAllCaps = false
-            setOnClickListener {
-                supplier = "راية"
-                status.text =
-                    "المذخر: راية"
+                setOnClickListener {
+                    supplier = "أمازون"
+                    status.text =
+                        "المذخر: أمازون"
+                }
             }
-        }
 
-        supplierRow.addView(
+        val raya =
+            Button(this).apply {
+                text = "راية"
+                isAllCaps = false
+
+                setOnClickListener {
+                    supplier = "راية"
+                    status.text =
+                        "المذخر: راية"
+                }
+            }
+
+        row.addView(
             amazon,
             LinearLayout.LayoutParams(
                 0,
@@ -1281,7 +1319,7 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        supplierRow.addView(
+        row.addView(
             raya,
             LinearLayout.LayoutParams(
                 0,
@@ -1290,82 +1328,96 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        layout.addView(supplierRow)
+        layout.addView(row)
 
-        AlertDialog.Builder(this)
-            .setTitle(item.medicineName)
-            .setView(layout)
-            .setPositiveButton(
-                "حفظ",
-                null
-            )
-            .setNegativeButton(
-                "إلغاء",
-                null
-            )
-            .create()
-            .also { dialog ->
+        val dialog =
+            AlertDialog.Builder(this)
+                .setTitle(item.medicineName)
+                .setView(layout)
+                .setPositiveButton(
+                    "حفظ",
+                    null
+                )
+                .setNegativeButton(
+                    "إلغاء",
+                    null
+                )
+                .create()
 
-                dialog.setOnShowListener {
+        dialog.setOnShowListener {
 
-                    dialog
-                        .getButton(
-                            AlertDialog.BUTTON_POSITIVE
+            dialog
+                .getButton(
+                    AlertDialog.BUTTON_POSITIVE
+                )
+                .setOnClickListener {
+
+                    val qty =
+                        quantity.text
+                            .toString()
+                            .toIntOrNull()
+                            ?: 0
+
+                    if (qty <= 0) {
+                        toast(
+                            "الكمية غير صحيحة"
                         )
-                        .setOnClickListener {
+                        return@setOnClickListener
+                    }
 
-                            val qty =
-                                quantity.text
-                                    .toString()
-                                    .toIntOrNull()
-                                    ?: 0
+                    orderStorage.saveOrderItem(
+                        item.copy(
+                            quantity = qty,
+                            supplier = supplier
+                        )
+                    )
 
-                            if (qty <= 0) {
-                                toast(
-                                    "الكمية غير صحيحة"
-                                )
-                                return@setOnClickListener
-                            }
+                    dialog.dismiss()
 
-                            orderStorage.saveOrderItem(
-                                item.copy(
-                                    quantity = qty,
-                                    supplier = supplier
-                                )
-                            )
-
-                            dialog.dismiss()
-                            showCurrentOrder()
-                        }
+                    showCurrentOrder()
                 }
+        }
 
-                dialog.show()
-            }
+        dialog.show()
     }
 
-    // =========================================================
-    // النسخ والمشاركة
-    // =========================================================
+    // =====================================================
+    // نسخ ومشاركة
+    // =====================================================
 
     private fun copySupplierOrder(
         supplier: String,
         items: List<OrderItem>
     ) {
 
-        val text = StringBuilder()
+        val text =
+            StringBuilder()
 
-        text.append("طلبية $supplier\n")
-        text.append("--------------------\n")
+        text.append(
+            "طلبية $supplier\n"
+        )
 
-        items.forEach {
+        text.append(
+            "--------------------\n"
+        )
 
-            text.append(it.medicineName)
+        items.forEach { item ->
+
+            text.append(
+                item.medicineName
+            )
+
             text.append(" عدد ")
-            text.append(it.quantity)
 
-            if (it.notes.isNotBlank()) {
+            text.append(
+                item.quantity
+            )
+
+            if (
+                item.notes.isNotBlank()
+            ) {
                 text.append(" - ")
-                text.append(it.notes)
+                text.append(item.notes)
             }
 
             text.append("\n")
@@ -1376,37 +1428,41 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    private fun copyText(text: String) {
+    private fun copyText(
+        text: String
+    ) {
 
         val clipboard =
             getSystemService(
                 Context.CLIPBOARD_SERVICE
             ) as ClipboardManager
 
-        val clip =
+        clipboard.setPrimaryClip(
             ClipData.newPlainText(
                 "طلباتي اليومية",
                 text
             )
-
-        clipboard.setPrimaryClip(clip)
+        )
 
         toast("تم نسخ الطلبية")
     }
 
-    private fun shareOrder(text: String) {
+    private fun shareOrder(
+        text: String
+    ) {
 
-        val intent = Intent(
-            Intent.ACTION_SEND
-        ).apply {
+        val intent =
+            Intent(
+                Intent.ACTION_SEND
+            ).apply {
 
-            type = "text/plain"
+                type = "text/plain"
 
-            putExtra(
-                Intent.EXTRA_TEXT,
-                text
-            )
-        }
+                putExtra(
+                    Intent.EXTRA_TEXT,
+                    text
+                )
+            }
 
         startActivity(
             Intent.createChooser(
@@ -1416,16 +1472,16 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    // =========================================================
+    // =====================================================
     // طلبية جديدة
-    // =========================================================
+    // =====================================================
 
     private fun confirmNewOrder() {
 
         AlertDialog.Builder(this)
             .setTitle("طلبية جديدة")
             .setMessage(
-                "سيتم مسح الطلبية الحالية فقط.\nقاعدة بيانات العلاجات لن تُحذف."
+                "سيتم مسح الطلبية الحالية فقط، ولن تُحذف قاعدة بيانات العلاجات."
             )
             .setPositiveButton(
                 "بدء طلبية جديدة"
@@ -1448,21 +1504,34 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    // =========================================================
-    // عناصر الواجهة
-    // =========================================================
+    // =====================================================
+    // أدوات الواجهة
+    // =====================================================
 
-    private fun addTitle(text: String) {
+    private fun addTitle(
+        text: String
+    ) {
 
-        val view = TextView(this).apply {
-            this.text = text
-            textSize = 32f
-            gravity = Gravity.CENTER
-            setTextColor(blue)
-            setPadding(10, 20, 10, 20)
-        }
+        val view =
+            TextView(this).apply {
+                this.text = text
+                textSize = 32f
+                gravity =
+                    Gravity.CENTER
+                setTextColor(blue)
 
-        root.addView(view, matchWrap())
+                setPadding(
+                    10,
+                    20,
+                    10,
+                    20
+                )
+            }
+
+        root.addView(
+            view,
+            matchWrap()
+        )
     }
 
     private fun addSectionTitle(
@@ -1470,15 +1539,26 @@ class MainActivity : AppCompatActivity() {
         color: Int
     ) {
 
-        val view = TextView(this).apply {
-            this.text = text
-            textSize = 22f
-            gravity = Gravity.CENTER
-            setTextColor(color)
-            setPadding(10, 18, 10, 18)
-        }
+        val view =
+            TextView(this).apply {
+                this.text = text
+                textSize = 22f
+                gravity =
+                    Gravity.CENTER
+                setTextColor(color)
 
-        root.addView(view, matchWrap())
+                setPadding(
+                    10,
+                    18,
+                    10,
+                    18
+                )
+            }
+
+        root.addView(
+            view,
+            matchWrap()
+        )
     }
 
     private fun addText(
@@ -1487,15 +1567,26 @@ class MainActivity : AppCompatActivity() {
         color: Int
     ) {
 
-        val view = TextView(this).apply {
-            this.text = text
-            textSize = size
-            gravity = Gravity.CENTER
-            setTextColor(color)
-            setPadding(10, 8, 10, 8)
-        }
+        val view =
+            TextView(this).apply {
+                this.text = text
+                textSize = size
+                gravity =
+                    Gravity.CENTER
+                setTextColor(color)
 
-        root.addView(view, matchWrap())
+                setPadding(
+                    10,
+                    8,
+                    10,
+                    8
+                )
+            }
+
+        root.addView(
+            view,
+            matchWrap()
+        )
     }
 
     private fun addTopBar(
@@ -1503,25 +1594,33 @@ class MainActivity : AppCompatActivity() {
         onBack: () -> Unit
     ) {
 
-        val row = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
+        val row =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.HORIZONTAL
 
-        val back = Button(this).apply {
-            text = "رجوع"
-            isAllCaps = false
-            setOnClickListener {
-                onBack()
+                gravity =
+                    Gravity.CENTER_VERTICAL
             }
-        }
 
-        val titleView = TextView(this).apply {
-            text = title
-            textSize = 23f
-            gravity = Gravity.CENTER
-            setTextColor(blue)
-        }
+        val back =
+            Button(this).apply {
+                text = "رجوع"
+                isAllCaps = false
+
+                setOnClickListener {
+                    onBack()
+                }
+            }
+
+        val titleView =
+            TextView(this).apply {
+                text = title
+                textSize = 22f
+                gravity =
+                    Gravity.CENTER
+                setTextColor(blue)
+            }
 
         row.addView(
             back,
@@ -1541,7 +1640,10 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        root.addView(row, matchWrap())
+        root.addView(
+            row,
+            matchWrap()
+        )
     }
 
     private fun addButton(
@@ -1550,17 +1652,24 @@ class MainActivity : AppCompatActivity() {
         action: () -> Unit
     ) {
 
-        val button = Button(this).apply {
-            this.text = text
-            textSize = 18f
-            isAllCaps = false
-            setTextColor(Color.WHITE)
-            setBackgroundColor(color)
+        val button =
+            Button(this).apply {
+                this.text = text
+                textSize = 18f
+                isAllCaps = false
 
-            setOnClickListener {
-                action()
+                setTextColor(
+                    Color.WHITE
+                )
+
+                setBackgroundColor(
+                    color
+                )
+
+                setOnClickListener {
+                    action()
+                }
             }
-        }
 
         root.addView(
             button,
@@ -1571,7 +1680,9 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    private fun addSpace(height: Int) {
+    private fun addSpace(
+        height: Int
+    ) {
 
         val space = View(this)
 
@@ -1593,7 +1704,9 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    private fun toast(message: String) {
+    private fun toast(
+        message: String
+    ) {
 
         Toast.makeText(
             this,
@@ -1604,14 +1717,15 @@ class MainActivity : AppCompatActivity() {
 
     private fun hideKeyboard() {
 
-        val view = currentFocus ?: return
+        val view =
+            currentFocus ?: return
 
-        val imm =
+        val manager =
             getSystemService(
                 Context.INPUT_METHOD_SERVICE
             ) as InputMethodManager
 
-        imm.hideSoftInputFromWindow(
+        manager.hideSoftInputFromWindow(
             view.windowToken,
             0
         )
