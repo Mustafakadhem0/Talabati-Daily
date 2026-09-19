@@ -35,7 +35,7 @@ class MainActivity : AppCompatActivity() {
     private val purple = Color.rgb(90, 70, 160)
     private val orange = Color.rgb(239, 108, 0)
 
-    private val background =
+    private val appBackgroundColor =
         Color.rgb(247, 248, 250)
 
     private val dark =
@@ -58,15 +58,8 @@ class MainActivity : AppCompatActivity() {
                     val backup =
                         JSONObject().apply {
 
-                            put(
-                                "app",
-                                "Talabati Daily"
-                            )
-
-                            put(
-                                "version",
-                                2
-                            )
+                            put("app", "Talabati Daily")
+                            put("version", 2)
 
                             put(
                                 "createdAt",
@@ -98,9 +91,7 @@ class MainActivity : AppCompatActivity() {
                         "تم إنشاء النسخة الاحتياطية"
                     )
 
-                } catch (
-                    e: Exception
-                ) {
+                } catch (e: Exception) {
 
                     toast(
                         "فشل إنشاء النسخة: ${e.message}"
@@ -125,9 +116,7 @@ class MainActivity : AppCompatActivity() {
                             ?.use {
                                 it.readText()
                             }
-                            ?: error(
-                                "الملف فارغ"
-                            )
+                            ?: error("الملف فارغ")
 
                     val backup =
                         JSONObject(text)
@@ -150,9 +139,7 @@ class MainActivity : AppCompatActivity() {
 
                     showHome()
 
-                } catch (
-                    e: Exception
-                ) {
+                } catch (e: Exception) {
 
                     toast(
                         "ملف النسخة غير صالح: ${e.message}"
@@ -192,7 +179,7 @@ class MainActivity : AppCompatActivity() {
                 )
 
                 setBackgroundColor(
-                    background
+                    appBackgroundColor
                 )
             }
 
@@ -200,7 +187,6 @@ class MainActivity : AppCompatActivity() {
             ScrollView(this).apply {
 
                 isFillViewport = true
-
                 addView(root)
             }
 
@@ -245,9 +231,7 @@ class MainActivity : AppCompatActivity() {
         val orderCount =
             orderStorage.getOrderCount()
 
-        if (
-            orderCount > 0
-        ) {
+        if (orderCount > 0) {
 
             addText(
                 "الطلبية الحالية: $orderCount مادة",
@@ -262,7 +246,6 @@ class MainActivity : AppCompatActivity() {
             "هيا نبدأ",
             blue
         ) {
-
             startOrder()
         }
 
@@ -272,7 +255,6 @@ class MainActivity : AppCompatActivity() {
             "قاعدة بيانات العلاجات",
             green
         ) {
-
             showDatabase()
         }
 
@@ -282,7 +264,6 @@ class MainActivity : AppCompatActivity() {
             "معدل الصرف الشهري",
             orange
         ) {
-
             showMonthlyUsage()
         }
 
@@ -292,7 +273,6 @@ class MainActivity : AppCompatActivity() {
             "النسخ الاحتياطي والاستعادة",
             Color.DKGRAY
         ) {
-
             showBackup()
         }
 
@@ -302,13 +282,10 @@ class MainActivity : AppCompatActivity() {
             "الطلبية الحالية",
             purple
         ) {
-
             showCurrentOrder()
         }
 
-        if (
-            orderCount > 0
-        ) {
+        if (orderCount > 0) {
 
             addSpace(12)
 
@@ -316,7 +293,6 @@ class MainActivity : AppCompatActivity() {
                 "بدء طلبية جديدة",
                 red
             ) {
-
                 confirmNewOrder()
             }
         }
@@ -334,7 +310,6 @@ class MainActivity : AppCompatActivity() {
         addTopBar(
             "قاعدة بيانات العلاجات"
         ) {
-
             showHome()
         }
 
@@ -343,19 +318,11 @@ class MainActivity : AppCompatActivity() {
         val searchInput =
             EditText(this).apply {
 
-                hint =
-                    "بحث عن علاج"
+                hint = "بحث عن علاج"
+                textSize = 17f
 
-                textSize =
-                    17f
-
-                setSingleLine(
-                    true
-                )
-
-                setText(
-                    search
-                )
+                setSingleLine(true)
+                setText(search)
             }
 
         root.addView(
@@ -371,8 +338,7 @@ class MainActivity : AppCompatActivity() {
         ) {
 
             showDatabase(
-                searchInput
-                    .text
+                searchInput.text
                     .toString()
                     .trim()
             )
@@ -388,17 +354,13 @@ class MainActivity : AppCompatActivity() {
             databaseScrollY =
                 scrollView.scrollY
 
-            showMedicineEditor(
-                null
-            )
+            showMedicineEditor(null)
         }
 
         addSpace(15)
 
         val medicines =
-            if (
-                search.isBlank()
-            ) {
+            if (search.isBlank()) {
 
                 medicineStorage
                     .getMedicines()
@@ -406,9 +368,7 @@ class MainActivity : AppCompatActivity() {
             } else {
 
                 medicineStorage
-                    .searchMedicines(
-                        search
-                    )
+                    .searchMedicines(search)
             }
 
         addText(
@@ -447,19 +407,15 @@ class MainActivity : AppCompatActivity() {
                     text =
                         "${index + 1}. ${medicine.name}"
 
-                    textSize =
-                        19f
+                    textSize = 19f
 
-                    setTextColor(
-                        dark
-                    )
+                    setTextColor(dark)
                 },
                 matchWrap()
             )
 
             if (
-                medicine
-                    .defaultSupplier
+                medicine.defaultSupplier
                     .isNotBlank()
             ) {
 
@@ -469,20 +425,16 @@ class MainActivity : AppCompatActivity() {
                         text =
                             "المذخر: ${medicine.defaultSupplier}"
 
-                        textSize =
-                            14f
+                        textSize = 14f
 
-                        setTextColor(
-                            gray
-                        )
+                        setTextColor(gray)
                     },
                     matchWrap()
                 )
             }
 
             if (
-                medicine
-                    .defaultQuantity > 0
+                medicine.defaultQuantity > 0
             ) {
 
                 card.addView(
@@ -491,20 +443,16 @@ class MainActivity : AppCompatActivity() {
                         text =
                             "الكمية الافتراضية: ${medicine.defaultQuantity}"
 
-                        textSize =
-                            14f
+                        textSize = 14f
 
-                        setTextColor(
-                            gray
-                        )
+                        setTextColor(gray)
                     },
                     matchWrap()
                 )
             }
 
             if (
-                medicine
-                    .notes
+                medicine.notes
                     .isNotBlank()
             ) {
 
@@ -514,12 +462,9 @@ class MainActivity : AppCompatActivity() {
                         text =
                             medicine.notes
 
-                        textSize =
-                            14f
+                        textSize = 14f
 
-                        setTextColor(
-                            gray
-                        )
+                        setTextColor(gray)
                     },
                     matchWrap()
                 )
@@ -539,7 +484,7 @@ class MainActivity : AppCompatActivity() {
 
                     isEnabled =
                         search.isBlank() &&
-                        index > 0
+                                index > 0
 
                     setOnClickListener {
 
@@ -565,8 +510,8 @@ class MainActivity : AppCompatActivity() {
 
                     isEnabled =
                         search.isBlank() &&
-                        index <
-                        medicines.lastIndex
+                                index <
+                                medicines.lastIndex
 
                     setOnClickListener {
 
@@ -610,11 +555,8 @@ class MainActivity : AppCompatActivity() {
             val editButton =
                 Button(this).apply {
 
-                    text =
-                        "تعديل"
-
-                    isAllCaps =
-                        false
+                    text = "تعديل"
+                    isAllCaps = false
 
                     setOnClickListener {
 
@@ -630,15 +572,10 @@ class MainActivity : AppCompatActivity() {
             val deleteButton =
                 Button(this).apply {
 
-                    text =
-                        "حذف"
+                    text = "حذف"
+                    isAllCaps = false
 
-                    isAllCaps =
-                        false
-
-                    setTextColor(
-                        red
-                    )
+                    setTextColor(red)
 
                     setOnClickListener {
 
@@ -671,9 +608,7 @@ class MainActivity : AppCompatActivity() {
             addSpace(8)
         }
 
-        if (
-            restorePosition
-        ) {
+        if (restorePosition) {
 
             scrollView.post {
 
@@ -721,16 +656,12 @@ class MainActivity : AppCompatActivity() {
             EditText(this).apply {
 
                 setText(
-                    medicine?.name
-                        ?: ""
+                    medicine?.name ?: ""
                 )
 
-                hint =
-                    "اسم العلاج"
+                hint = "اسم العلاج"
 
-                setSingleLine(
-                    true
-                )
+                setSingleLine(true)
             }
 
         root.addView(
@@ -747,23 +678,19 @@ class MainActivity : AppCompatActivity() {
         )
 
         var supplier =
-            medicine
-                ?.defaultSupplier
+            medicine?.defaultSupplier
                 ?: ""
 
         val supplierStatus =
             TextView(this).apply {
 
                 text =
-                    if (
-                        supplier.isBlank()
-                    )
+                    if (supplier.isBlank())
                         "غير محدد"
                     else
                         supplier
 
-                textSize =
-                    18f
+                textSize = 18f
 
                 gravity =
                     Gravity.CENTER
@@ -784,13 +711,11 @@ class MainActivity : AppCompatActivity() {
         supplierRow.addView(
             Button(this).apply {
 
-                text =
-                    "أمازون"
+                text = "أمازون"
 
                 setOnClickListener {
 
-                    supplier =
-                        "أمازون"
+                    supplier = "أمازون"
 
                     supplierStatus.text =
                         supplier
@@ -802,13 +727,11 @@ class MainActivity : AppCompatActivity() {
         supplierRow.addView(
             Button(this).apply {
 
-                text =
-                    "راية"
+                text = "راية"
 
                 setOnClickListener {
 
-                    supplier =
-                        "راية"
+                    supplier = "راية"
 
                     supplierStatus.text =
                         supplier
@@ -820,13 +743,11 @@ class MainActivity : AppCompatActivity() {
         supplierRow.addView(
             Button(this).apply {
 
-                text =
-                    "بدون"
+                text = "بدون"
 
                 setOnClickListener {
 
-                    supplier =
-                        ""
+                    supplier = ""
 
                     supplierStatus.text =
                         "غير محدد"
@@ -854,12 +775,10 @@ class MainActivity : AppCompatActivity() {
                 inputType =
                     InputType.TYPE_CLASS_NUMBER
 
-                hint =
-                    "0"
+                hint = "0"
 
                 if (
-                    (medicine
-                        ?.defaultQuantity
+                    (medicine?.defaultQuantity
                         ?: 0) > 0
                 ) {
 
@@ -887,12 +806,10 @@ class MainActivity : AppCompatActivity() {
         val notesInput =
             EditText(this).apply {
 
-                minLines =
-                    2
+                minLines = 2
 
                 setText(
-                    medicine?.notes
-                        ?: ""
+                    medicine?.notes ?: ""
                 )
             }
 
@@ -912,14 +829,11 @@ class MainActivity : AppCompatActivity() {
         ) {
 
             val medicineName =
-                nameInput
-                    .text
+                nameInput.text
                     .toString()
                     .trim()
 
-            if (
-                medicineName.isBlank()
-            ) {
+            if (medicineName.isBlank()) {
 
                 toast(
                     "اكتب اسم العلاج"
@@ -929,23 +843,19 @@ class MainActivity : AppCompatActivity() {
             }
 
             val quantity =
-                quantityInput
-                    .text
+                quantityInput.text
                     .toString()
                     .toIntOrNull()
                     ?: 0
 
-            if (
-                medicine == null
-            ) {
+            if (medicine == null) {
 
                 medicineStorage
                     .addMedicine(
                         medicineName,
                         supplier,
                         quantity,
-                        notesInput
-                            .text
+                        notesInput.text
                             .toString()
                     )
 
@@ -966,8 +876,7 @@ class MainActivity : AppCompatActivity() {
                                 quantity,
 
                             notes =
-                                notesInput
-                                    .text
+                                notesInput.text
                                     .toString()
                                     .trim()
                         )
@@ -1005,8 +914,7 @@ class MainActivity : AppCompatActivity() {
         medicine: Medicine
     ) {
 
-        AlertDialog
-            .Builder(this)
+        AlertDialog.Builder(this)
             .setTitle(
                 "حذف العلاج"
             )
@@ -1053,12 +961,9 @@ class MainActivity : AppCompatActivity() {
                 .getMedicines()
                 .toMutableList()
 
-        if (
-            currentMedicines.isEmpty()
-        ) {
+        if (currentMedicines.isEmpty()) {
 
-            AlertDialog
-                .Builder(this)
+            AlertDialog.Builder(this)
                 .setTitle(
                     "قاعدة البيانات فارغة"
                 )
@@ -1069,9 +974,7 @@ class MainActivity : AppCompatActivity() {
                     "إضافة علاج"
                 ) { _, _ ->
 
-                    showMedicineEditor(
-                        null
-                    )
+                    showMedicineEditor(null)
                 }
                 .setNegativeButton(
                     "إلغاء",
@@ -1099,9 +1002,7 @@ class MainActivity : AppCompatActivity() {
 
         root.removeAllViews()
 
-        if (
-            currentMedicines.isEmpty()
-        ) {
+        if (currentMedicines.isEmpty()) {
 
             showHome()
             return
@@ -1130,7 +1031,6 @@ class MainActivity : AppCompatActivity() {
         addTopBar(
             "الطلبية"
         ) {
-
             showHome()
         }
 
@@ -1147,8 +1047,7 @@ class MainActivity : AppCompatActivity() {
         )
 
         if (
-            medicine
-                .notes
+            medicine.notes
                 .isNotBlank()
         ) {
 
@@ -1173,23 +1072,18 @@ class MainActivity : AppCompatActivity() {
                 inputType =
                     InputType.TYPE_CLASS_NUMBER
 
-                textSize =
-                    25f
+                textSize = 25f
 
                 gravity =
                     Gravity.CENTER
 
-                setSingleLine(
-                    true
-                )
+                setSingleLine(true)
 
                 val quantity =
                     existing?.quantity
                         ?: medicine.defaultQuantity
 
-                if (
-                    quantity > 0
-                ) {
+                if (quantity > 0) {
 
                     setText(
                         quantity.toString()
@@ -1227,8 +1121,7 @@ class MainActivity : AppCompatActivity() {
                 gravity =
                     Gravity.CENTER
 
-                textSize =
-                    17f
+                textSize = 17f
             }
 
         root.addView(
@@ -1246,8 +1139,7 @@ class MainActivity : AppCompatActivity() {
         supplierRow.addView(
             Button(this).apply {
 
-                text =
-                    "أمازون"
+                text = "أمازون"
 
                 setOnClickListener {
 
@@ -1264,8 +1156,7 @@ class MainActivity : AppCompatActivity() {
         supplierRow.addView(
             Button(this).apply {
 
-                text =
-                    "راية"
+                text = "راية"
 
                 setOnClickListener {
 
@@ -1291,32 +1182,30 @@ class MainActivity : AppCompatActivity() {
         ) {
 
             val quantity =
-                quantityInput
-                    .text
+                quantityInput.text
                     .toString()
                     .toIntOrNull()
                     ?: 0
 
-            orderStorage
-                .saveOrderItem(
+            orderStorage.saveOrderItem(
 
-                    OrderItem(
-                        medicineId =
-                            medicine.id,
+                OrderItem(
+                    medicineId =
+                        medicine.id,
 
-                        medicineName =
-                            medicine.name,
+                    medicineName =
+                        medicine.name,
 
-                        quantity =
-                            quantity,
+                    quantity =
+                        quantity,
 
-                        supplier =
-                            supplier,
+                    supplier =
+                        supplier,
 
-                        notes =
-                            medicine.notes
-                    )
+                    notes =
+                        medicine.notes
                 )
+            )
 
             currentIndex =
                 (currentIndex + change)
@@ -1339,32 +1228,30 @@ class MainActivity : AppCompatActivity() {
         ) {
 
             val quantity =
-                quantityInput
-                    .text
+                quantityInput.text
                     .toString()
                     .toIntOrNull()
                     ?: 0
 
-            orderStorage
-                .saveOrderItem(
+            orderStorage.saveOrderItem(
 
-                    OrderItem(
-                        medicineId =
-                            medicine.id,
+                OrderItem(
+                    medicineId =
+                        medicine.id,
 
-                        medicineName =
-                            medicine.name,
+                    medicineName =
+                        medicine.name,
 
-                        quantity =
-                            quantity,
+                    quantity =
+                        quantity,
 
-                        supplier =
-                            supplier,
+                    supplier =
+                        supplier,
 
-                        notes =
-                            medicine.notes
-                    )
+                    notes =
+                        medicine.notes
                 )
+            )
 
             if (
                 currentIndex <
@@ -1402,17 +1289,14 @@ class MainActivity : AppCompatActivity() {
         navigationRow.addView(
             Button(this).apply {
 
-                text =
-                    "السابق"
+                text = "السابق"
 
                 isEnabled =
                     currentIndex > 0
 
                 setOnClickListener {
 
-                    saveAndGo(
-                        -1
-                    )
+                    saveAndGo(-1)
                 }
             },
             weightWrap()
@@ -1421,18 +1305,15 @@ class MainActivity : AppCompatActivity() {
         navigationRow.addView(
             Button(this).apply {
 
-                text =
-                    "التالي"
+                text = "التالي"
 
                 isEnabled =
                     currentIndex <
-                    currentMedicines.lastIndex
+                            currentMedicines.lastIndex
 
                 setOnClickListener {
 
-                    saveAndGo(
-                        1
-                    )
+                    saveAndGo(1)
                 }
             },
             weightWrap()
@@ -1453,13 +1334,11 @@ class MainActivity : AppCompatActivity() {
         addTopBar(
             "الطلبية الحالية"
         ) {
-
             showHome()
         }
 
         val items =
-            orderStorage
-                .getOrderItems()
+            orderStorage.getOrderItems()
 
         addText(
             "عدد المواد: ${items.size}",
@@ -1469,9 +1348,7 @@ class MainActivity : AppCompatActivity() {
 
         addSpace(10)
 
-        if (
-            items.isEmpty()
-        ) {
+        if (items.isEmpty()) {
 
             addText(
                 "لا توجد مواد في الطلبية الحالية.",
@@ -1510,8 +1387,7 @@ class MainActivity : AppCompatActivity() {
                     text =
                         "${index + 1}. ${item.medicineName} — عدد ${item.quantity}"
 
-                    textSize =
-                        18f
+                    textSize = 18f
                 },
                 matchWrap()
             )
@@ -1527,12 +1403,9 @@ class MainActivity : AppCompatActivity() {
                                 item.supplier
                         }"
 
-                    textSize =
-                        14f
+                    textSize = 14f
 
-                    setTextColor(
-                        gray
-                    )
+                    setTextColor(gray)
                 },
                 matchWrap()
             )
@@ -1576,8 +1449,7 @@ class MainActivity : AppCompatActivity() {
             green
         ) {
 
-            AlertDialog
-                .Builder(this)
+            AlertDialog.Builder(this)
                 .setTitle(
                     "إكمال الطلبية"
                 )
@@ -1617,7 +1489,6 @@ class MainActivity : AppCompatActivity() {
         addTopBar(
             "معدل الصرف الشهري"
         ) {
-
             showHome()
         }
 
@@ -1643,9 +1514,7 @@ class MainActivity : AppCompatActivity() {
             medicineStorage
                 .getMedicines()
 
-        if (
-            medicines.isEmpty()
-        ) {
+        if (medicines.isEmpty()) {
 
             addText(
                 "لا توجد مواد.",
@@ -1661,9 +1530,7 @@ class MainActivity : AppCompatActivity() {
                 medicine ->
 
             val total =
-                totals[
-                    medicine.id
-                ] ?: 0
+                totals[medicine.id] ?: 0
 
             val card =
                 LinearLayout(this).apply {
@@ -1692,8 +1559,7 @@ class MainActivity : AppCompatActivity() {
                     text =
                         "${index + 1}. ${medicine.name}"
 
-                    textSize =
-                        17f
+                    textSize = 17f
                 },
                 LinearLayout.LayoutParams(
                     0,
@@ -1708,8 +1574,7 @@ class MainActivity : AppCompatActivity() {
                     text =
                         total.toString()
 
-                    textSize =
-                        20f
+                    textSize = 20f
 
                     gravity =
                         Gravity.CENTER
@@ -1745,7 +1610,6 @@ class MainActivity : AppCompatActivity() {
         addTopBar(
             "النسخ الاحتياطي والاستعادة"
         ) {
-
             showHome()
         }
 
@@ -1784,8 +1648,7 @@ class MainActivity : AppCompatActivity() {
             orange
         ) {
 
-            AlertDialog
-                .Builder(this)
+            AlertDialog.Builder(this)
                 .setTitle(
                     "استعادة النسخة"
                 )
@@ -1813,8 +1676,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun confirmNewOrder() {
 
-        AlertDialog
-            .Builder(this)
+        AlertDialog.Builder(this)
             .setTitle(
                 "بدء طلبية جديدة"
             )
@@ -1825,8 +1687,7 @@ class MainActivity : AppCompatActivity() {
                 "بدء جديدة"
             ) { _, _ ->
 
-                orderStorage
-                    .clearOrder()
+                orderStorage.clearOrder()
 
                 toast(
                     "تم بدء طلبية جديدة"
@@ -1859,11 +1720,9 @@ class MainActivity : AppCompatActivity() {
         row.addView(
             Button(this).apply {
 
-                text =
-                    "رجوع"
+                text = "رجوع"
 
                 setOnClickListener {
-
                     back()
                 }
             },
@@ -1876,18 +1735,14 @@ class MainActivity : AppCompatActivity() {
         row.addView(
             TextView(this).apply {
 
-                text =
-                    title
+                text = title
 
-                textSize =
-                    21f
+                textSize = 21f
 
                 gravity =
                     Gravity.CENTER
 
-                setTextColor(
-                    dark
-                )
+                setTextColor(dark)
             },
             LinearLayout.LayoutParams(
                 0,
@@ -1909,18 +1764,14 @@ class MainActivity : AppCompatActivity() {
         root.addView(
             TextView(this).apply {
 
-                this.text =
-                    text
+                this.text = text
 
-                textSize =
-                    28f
+                textSize = 28f
 
                 gravity =
                     Gravity.CENTER
 
-                setTextColor(
-                    dark
-                )
+                setTextColor(dark)
 
                 setPadding(
                     8,
@@ -1942,18 +1793,14 @@ class MainActivity : AppCompatActivity() {
         root.addView(
             TextView(this).apply {
 
-                this.text =
-                    text
+                this.text = text
 
-                textSize =
-                    size
+                textSize = size
 
                 gravity =
                     Gravity.CENTER
 
-                setTextColor(
-                    color
-                )
+                setTextColor(color)
 
                 setPadding(
                     6,
@@ -1975,14 +1822,11 @@ class MainActivity : AppCompatActivity() {
         root.addView(
             Button(this).apply {
 
-                this.text =
-                    text
+                this.text = text
 
-                isAllCaps =
-                    false
+                isAllCaps = false
 
-                textSize =
-                    17f
+                textSize = 17f
 
                 setTextColor(
                     Color.WHITE
@@ -1993,7 +1837,6 @@ class MainActivity : AppCompatActivity() {
                 )
 
                 setOnClickListener {
-
                     action()
                 }
             },
@@ -2040,13 +1883,11 @@ class MainActivity : AppCompatActivity() {
         message: String
     ) {
 
-        Toast
-            .makeText(
-                this,
-                message,
-                Toast.LENGTH_SHORT
-            )
-            .show()
+        Toast.makeText(
+            this,
+            message,
+            Toast.LENGTH_SHORT
+        ).show()
     }
 
     private fun hideKeyboard() {
@@ -2058,11 +1899,10 @@ class MainActivity : AppCompatActivity() {
                     Context.INPUT_METHOD_SERVICE
                 ) as InputMethodManager
 
-            keyboard
-                .hideSoftInputFromWindow(
-                    it.windowToken,
-                    0
-                )
+            keyboard.hideSoftInputFromWindow(
+                it.windowToken,
+                0
+            )
         }
     }
 }
