@@ -3,91 +3,252 @@ package com.mustafa.talabatidaily
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.text.InputType
 import android.view.Gravity
 import android.view.View
 import android.view.inputmethod.InputMethodManager
-import android.widget.Button
-import android.widget.EditText
-import android.widget.LinearLayout
-import android.widget.ScrollView
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var root: LinearLayout
+    private lateinit var scrollView: ScrollView
+
     private lateinit var medicineStorage: MedicineStorage
     private lateinit var orderStorage: OrderStorage
 
     private var currentMedicines = mutableListOf<Medicine>()
     private var currentIndex = 0
+    private var databaseScrollY = 0
 
     private val blue = Color.rgb(21, 101, 192)
     private val green = Color.rgb(46, 125, 50)
     private val red = Color.rgb(198, 40, 40)
     private val purple = Color.rgb(90, 70, 160)
-    private val appBackgroundColor = Color.rgb(247, 248, 250)
-    private val darkText = Color.rgb(30, 30, 30)
-    private val grayText = Color.rgb(100, 100, 100)
+    private val orange = Color.rgb(239, 108, 0)
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    private val background =
+        Color.rgb(247, 248, 250)
 
-        medicineStorage = MedicineStorage(this)
-        orderStorage = OrderStorage(this)
+    private val dark =
+        Color.rgb(30, 30, 30)
 
-        root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(32, 45, 32, 50)
-            setBackgroundColor(appBackgroundColor)
+    private val gray =
+        Color.rgb(100, 100, 100)
+
+    private val createBackup =
+        registerForActivityResult(
+            ActivityResultContracts.CreateDocument(
+                "application/json"
+            )
+        ) { uri ->
+
+            if (uri != null) {
+
+                try {
+
+                    val backup =
+                        JSONObject().apply {
+
+                            put(
+                                "app",
+                                "Talabati Daily"
+                            )
+
+                            put(
+                                "version",
+                                2
+                            )
+
+                            put(
+                                "createdAt",
+                                System.currentTimeMillis()
+                            )
+
+                            put(
+                                "database",
+                                medicineStorage.exportJson()
+                            )
+
+                            put(
+                                "orders",
+                                orderStorage.exportJson()
+                            )
+                        }
+
+                    contentResolver
+                        .openOutputStream(uri)
+                        ?.bufferedWriter()
+                        ?.use {
+
+                            it.write(
+                                backup.toString(2)
+                            )
+                        }
+
+                    toast(
+                        "تم إنشاء النسخة الاحتياطية"
+                    )
+
+                } catch (
+                    e: Exception
+                ) {
+
+                    toast(
+                        "فشل إنشاء النسخة: ${e.message}"
+                    )
+                }
+            }
         }
 
-        val scrollView = ScrollView(this).apply {
-            isFillViewport = true
-            addView(root)
+    private val restoreBackup =
+        registerForActivityResult(
+            ActivityResultContracts.OpenDocument()
+        ) { uri ->
+
+            if (uri != null) {
+
+                try {
+
+                    val text =
+                        contentResolver
+                            .openInputStream(uri)
+                            ?.bufferedReader()
+                            ?.use {
+                                it.readText()
+                            }
+                            ?: error(
+                                "الملف فارغ"
+                            )
+
+                    val backup =
+                        JSONObject(text)
+
+                    medicineStorage.importJson(
+                        backup.getJSONObject(
+                            "database"
+                        )
+                    )
+
+                    orderStorage.importJson(
+                        backup.getJSONObject(
+                            "orders"
+                        )
+                    )
+
+                    toast(
+                        "تمت استعادة النسخة الاحتياطية"
+                    )
+
+                    showHome()
+
+                } catch (
+                    e: Exception
+                ) {
+
+                    toast(
+                        "ملف النسخة غير صالح: ${e.message}"
+                    )
+                }
+            }
         }
 
-        setContentView(scrollView)
+    override fun onCreate(
+        savedInstanceState: Bundle?
+    ) {
+
+        super.onCreate(
+            savedInstanceState
+        )
+
+        medicineStorage =
+            MedicineStorage(this)
+
+        orderStorage =
+            OrderStorage(this)
+
+        root =
+            LinearLayout(this).apply {
+
+                orientation =
+                    LinearLayout.VERTICAL
+
+                gravity =
+                    Gravity.CENTER_HORIZONTAL
+
+                setPadding(
+                    32,
+                    45,
+                    32,
+                    50
+                )
+
+                setBackgroundColor(
+                    background
+                )
+            }
+
+        scrollView =
+            ScrollView(this).apply {
+
+                isFillViewport = true
+
+                addView(root)
+            }
+
+        setContentView(
+            scrollView
+        )
 
         showHome()
     }
 
-    // =====================================================
-    // الصفحة الرئيسية
-    // =====================================================
-
     private fun showHome() {
+
         hideKeyboard()
+
         root.removeAllViews()
 
-        addSpace(30)
+        scrollView.scrollTo(
+            0,
+            0
+        )
 
-        addTitle("طلباتي اليومية")
+        addSpace(25)
+
+        addTitle(
+            "طلباتي اليومية"
+        )
 
         addText(
             "إدارة طلبات الصيدلية",
             18f,
-            grayText
+            gray
         )
 
-        addSpace(10)
+        addSpace(8)
 
         addText(
             "عدد العلاجات: ${medicineStorage.count()}",
             15f,
-            grayText
+            gray
         )
 
-        val orderCount = orderStorage.getOrderCount()
+        val orderCount =
+            orderStorage.getOrderCount()
 
-        if (orderCount > 0) {
+        if (
+            orderCount > 0
+        ) {
+
             addText(
                 "الطلبية الحالية: $orderCount مادة",
                 15f,
@@ -95,420 +256,748 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
-        addSpace(40)
+        addSpace(30)
 
         addButton(
             "هيا نبدأ",
             blue
         ) {
+
             startOrder()
         }
 
-        addSpace(15)
+        addSpace(12)
 
         addButton(
             "قاعدة بيانات العلاجات",
             green
         ) {
+
             showDatabase()
         }
 
-        addSpace(15)
+        addSpace(12)
+
+        addButton(
+            "معدل الصرف الشهري",
+            orange
+        ) {
+
+            showMonthlyUsage()
+        }
+
+        addSpace(12)
+
+        addButton(
+            "النسخ الاحتياطي والاستعادة",
+            Color.DKGRAY
+        ) {
+
+            showBackup()
+        }
+
+        addSpace(12)
 
         addButton(
             "الطلبية الحالية",
             purple
         ) {
+
             showCurrentOrder()
         }
 
-        if (orderCount > 0) {
-            addSpace(15)
+        if (
+            orderCount > 0
+        ) {
+
+            addSpace(12)
 
             addButton(
                 "بدء طلبية جديدة",
                 red
             ) {
+
                 confirmNewOrder()
             }
         }
     }
 
-    // =====================================================
-    // قاعدة البيانات
-    // =====================================================
+    private fun showDatabase(
+        search: String = "",
+        restorePosition: Boolean = false
+    ) {
 
-    private fun showDatabase(search: String = "") {
         hideKeyboard()
+
         root.removeAllViews()
 
         addTopBar(
             "قاعدة بيانات العلاجات"
         ) {
+
             showHome()
         }
 
-        addSpace(15)
+        addSpace(12)
 
-        val searchInput = EditText(this).apply {
-            hint = "بحث عن علاج"
-            textSize = 17f
-            setSingleLine(true)
-            setText(search)
-        }
+        val searchInput =
+            EditText(this).apply {
 
-        root.addView(searchInput, matchWrap())
+                hint =
+                    "بحث عن علاج"
 
-        addSpace(10)
+                textSize =
+                    17f
+
+                setSingleLine(
+                    true
+                )
+
+                setText(
+                    search
+                )
+            }
+
+        root.addView(
+            searchInput,
+            matchWrap()
+        )
+
+        addSpace(8)
 
         addButton(
             "بحث",
             blue
         ) {
+
             showDatabase(
-                searchInput.text.toString().trim()
+                searchInput
+                    .text
+                    .toString()
+                    .trim()
             )
         }
 
-        addSpace(10)
+        addSpace(8)
 
         addButton(
             "إضافة علاج جديد",
             green
         ) {
-            showMedicineEditor(null)
+
+            databaseScrollY =
+                scrollView.scrollY
+
+            showMedicineEditor(
+                null
+            )
         }
 
-        addSpace(20)
+        addSpace(15)
 
         val medicines =
-            if (search.isBlank()) {
-                medicineStorage.getMedicines()
+            if (
+                search.isBlank()
+            ) {
+
+                medicineStorage
+                    .getMedicines()
+
             } else {
-                medicineStorage.searchMedicines(search)
+
+                medicineStorage
+                    .searchMedicines(
+                        search
+                    )
             }
 
         addText(
             "عدد النتائج: ${medicines.size}",
             15f,
-            grayText
+            gray
         )
 
-        addSpace(10)
+        addSpace(8)
 
-        if (medicines.isEmpty()) {
-            addText(
-                "لا توجد علاجات.",
-                18f,
-                grayText
+        medicines.forEachIndexed {
+                index,
+                medicine ->
+
+            val card =
+                LinearLayout(this).apply {
+
+                    orientation =
+                        LinearLayout.VERTICAL
+
+                    setPadding(
+                        20,
+                        15,
+                        20,
+                        15
+                    )
+
+                    setBackgroundColor(
+                        Color.WHITE
+                    )
+                }
+
+            card.addView(
+                TextView(this).apply {
+
+                    text =
+                        "${index + 1}. ${medicine.name}"
+
+                    textSize =
+                        19f
+
+                    setTextColor(
+                        dark
+                    )
+                },
+                matchWrap()
             )
-            return
+
+            if (
+                medicine
+                    .defaultSupplier
+                    .isNotBlank()
+            ) {
+
+                card.addView(
+                    TextView(this).apply {
+
+                        text =
+                            "المذخر: ${medicine.defaultSupplier}"
+
+                        textSize =
+                            14f
+
+                        setTextColor(
+                            gray
+                        )
+                    },
+                    matchWrap()
+                )
+            }
+
+            if (
+                medicine
+                    .defaultQuantity > 0
+            ) {
+
+                card.addView(
+                    TextView(this).apply {
+
+                        text =
+                            "الكمية الافتراضية: ${medicine.defaultQuantity}"
+
+                        textSize =
+                            14f
+
+                        setTextColor(
+                            gray
+                        )
+                    },
+                    matchWrap()
+                )
+            }
+
+            if (
+                medicine
+                    .notes
+                    .isNotBlank()
+            ) {
+
+                card.addView(
+                    TextView(this).apply {
+
+                        text =
+                            medicine.notes
+
+                        textSize =
+                            14f
+
+                        setTextColor(
+                            gray
+                        )
+                    },
+                    matchWrap()
+                )
+            }
+
+            val orderRow =
+                LinearLayout(this).apply {
+
+                    orientation =
+                        LinearLayout.HORIZONTAL
+                }
+
+            val upButton =
+                Button(this).apply {
+
+                    text = "↑"
+
+                    isEnabled =
+                        search.isBlank() &&
+                        index > 0
+
+                    setOnClickListener {
+
+                        databaseScrollY =
+                            scrollView.scrollY
+
+                        medicineStorage
+                            .moveUp(
+                                medicine.id
+                            )
+
+                        showDatabase(
+                            "",
+                            true
+                        )
+                    }
+                }
+
+            val downButton =
+                Button(this).apply {
+
+                    text = "↓"
+
+                    isEnabled =
+                        search.isBlank() &&
+                        index <
+                        medicines.lastIndex
+
+                    setOnClickListener {
+
+                        databaseScrollY =
+                            scrollView.scrollY
+
+                        medicineStorage
+                            .moveDown(
+                                medicine.id
+                            )
+
+                        showDatabase(
+                            "",
+                            true
+                        )
+                    }
+                }
+
+            orderRow.addView(
+                upButton,
+                weightWrap()
+            )
+
+            orderRow.addView(
+                downButton,
+                weightWrap()
+            )
+
+            card.addView(
+                orderRow,
+                matchWrap()
+            )
+
+            val actionRow =
+                LinearLayout(this).apply {
+
+                    orientation =
+                        LinearLayout.HORIZONTAL
+                }
+
+            val editButton =
+                Button(this).apply {
+
+                    text =
+                        "تعديل"
+
+                    isAllCaps =
+                        false
+
+                    setOnClickListener {
+
+                        databaseScrollY =
+                            scrollView.scrollY
+
+                        showMedicineEditor(
+                            medicine
+                        )
+                    }
+                }
+
+            val deleteButton =
+                Button(this).apply {
+
+                    text =
+                        "حذف"
+
+                    isAllCaps =
+                        false
+
+                    setTextColor(
+                        red
+                    )
+
+                    setOnClickListener {
+
+                        confirmDeleteMedicine(
+                            medicine
+                        )
+                    }
+                }
+
+            actionRow.addView(
+                editButton,
+                weightWrap()
+            )
+
+            actionRow.addView(
+                deleteButton,
+                weightWrap()
+            )
+
+            card.addView(
+                actionRow,
+                matchWrap()
+            )
+
+            root.addView(
+                card,
+                matchWrap()
+            )
+
+            addSpace(8)
         }
 
-        medicines.forEachIndexed { index, medicine ->
+        if (
+            restorePosition
+        ) {
 
-            val card = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                setPadding(20, 18, 20, 18)
-                setBackgroundColor(Color.WHITE)
-            }
+            scrollView.post {
 
-            val name = TextView(this).apply {
-                text = "${index + 1}. ${medicine.name}"
-                textSize = 19f
-                setTextColor(darkText)
-            }
-
-            card.addView(name, matchWrap())
-
-            if (medicine.defaultSupplier.isNotBlank()) {
-                val supplier = TextView(this).apply {
-                    text = "المذخر: ${medicine.defaultSupplier}"
-                    textSize = 14f
-                    setTextColor(grayText)
-                }
-
-                card.addView(supplier, matchWrap())
-            }
-
-            if (medicine.defaultQuantity > 0) {
-                val qty = TextView(this).apply {
-                    text = "الكمية الافتراضية: ${medicine.defaultQuantity}"
-                    textSize = 14f
-                    setTextColor(grayText)
-                }
-
-                card.addView(qty, matchWrap())
-            }
-
-            if (medicine.notes.isNotBlank()) {
-                val notes = TextView(this).apply {
-                    text = medicine.notes
-                    textSize = 14f
-                    setTextColor(grayText)
-                }
-
-                card.addView(notes, matchWrap())
-            }
-
-            val row = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-            }
-
-            val edit = Button(this).apply {
-                text = "تعديل"
-                isAllCaps = false
-
-                setOnClickListener {
-                    showMedicineEditor(medicine)
-                }
-            }
-
-            val delete = Button(this).apply {
-                text = "حذف"
-                isAllCaps = false
-                setTextColor(red)
-
-                setOnClickListener {
-                    confirmDeleteMedicine(medicine)
-                }
-            }
-
-            row.addView(
-                edit,
-                LinearLayout.LayoutParams(
+                scrollView.scrollTo(
                     0,
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    1f
+                    databaseScrollY
                 )
-            )
-
-            row.addView(
-                delete,
-                LinearLayout.LayoutParams(
-                    0,
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    1f
-                )
-            )
-
-            card.addView(row, matchWrap())
-
-            root.addView(card, matchWrap())
-
-            addSpace(10)
+            }
         }
     }
 
-    // =====================================================
-    // إضافة / تعديل علاج
-    // =====================================================
+    private fun showMedicineEditor(
+        medicine: Medicine?
+    ) {
 
-    private fun showMedicineEditor(medicine: Medicine?) {
         hideKeyboard()
+
         root.removeAllViews()
 
-        val editing = medicine != null
+        val editing =
+            medicine != null
 
         addTopBar(
-            if (editing) "تعديل العلاج"
-            else "إضافة علاج"
+            if (editing)
+                "تعديل العلاج"
+            else
+                "إضافة علاج"
         ) {
-            showDatabase()
+
+            showDatabase(
+                "",
+                true
+            )
         }
 
-        addSpace(20)
+        addSpace(15)
 
         addText(
             "اسم العلاج",
             16f,
-            darkText
+            dark
         )
 
-        val nameInput = EditText(this).apply {
-            hint = "اسم العلاج"
-            textSize = 18f
-            setSingleLine(true)
-            setText(medicine?.name ?: "")
-        }
+        val nameInput =
+            EditText(this).apply {
 
-        root.addView(nameInput, matchWrap())
+                setText(
+                    medicine?.name
+                        ?: ""
+                )
 
-        addSpace(15)
+                hint =
+                    "اسم العلاج"
+
+                setSingleLine(
+                    true
+                )
+            }
+
+        root.addView(
+            nameInput,
+            matchWrap()
+        )
+
+        addSpace(12)
 
         addText(
             "المذخر الافتراضي",
             16f,
-            darkText
+            dark
         )
 
-        var selectedSupplier =
-            medicine?.defaultSupplier ?: ""
+        var supplier =
+            medicine
+                ?.defaultSupplier
+                ?: ""
 
-        val supplierStatus = TextView(this).apply {
-            text =
-                if (selectedSupplier.isBlank()) {
-                    "غير محدد"
-                } else {
-                    selectedSupplier
+        val supplierStatus =
+            TextView(this).apply {
+
+                text =
+                    if (
+                        supplier.isBlank()
+                    )
+                        "غير محدد"
+                    else
+                        supplier
+
+                textSize =
+                    18f
+
+                gravity =
+                    Gravity.CENTER
+            }
+
+        root.addView(
+            supplierStatus,
+            matchWrap()
+        )
+
+        val supplierRow =
+            LinearLayout(this).apply {
+
+                orientation =
+                    LinearLayout.HORIZONTAL
+            }
+
+        supplierRow.addView(
+            Button(this).apply {
+
+                text =
+                    "أمازون"
+
+                setOnClickListener {
+
+                    supplier =
+                        "أمازون"
+
+                    supplierStatus.text =
+                        supplier
                 }
-
-            textSize = 18f
-            gravity = Gravity.CENTER
-            setPadding(10, 15, 10, 15)
-        }
-
-        root.addView(supplierStatus, matchWrap())
-
-        val supplierRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-        }
-
-        val amazon = Button(this).apply {
-            text = "أمازون"
-            isAllCaps = false
-
-            setOnClickListener {
-                selectedSupplier = "أمازون"
-                supplierStatus.text = "أمازون"
-                supplierStatus.setTextColor(blue)
-            }
-        }
-
-        val raya = Button(this).apply {
-            text = "راية"
-            isAllCaps = false
-
-            setOnClickListener {
-                selectedSupplier = "راية"
-                supplierStatus.text = "راية"
-                supplierStatus.setTextColor(green)
-            }
-        }
-
-        supplierRow.addView(
-            amazon,
-            LinearLayout.LayoutParams(
-                0,
-                130,
-                1f
-            )
+            },
+            weightWrap()
         )
 
         supplierRow.addView(
-            raya,
-            LinearLayout.LayoutParams(
-                0,
-                130,
-                1f
-            )
+            Button(this).apply {
+
+                text =
+                    "راية"
+
+                setOnClickListener {
+
+                    supplier =
+                        "راية"
+
+                    supplierStatus.text =
+                        supplier
+                }
+            },
+            weightWrap()
         )
 
-        root.addView(supplierRow, matchWrap())
+        supplierRow.addView(
+            Button(this).apply {
 
-        addSpace(15)
+                text =
+                    "بدون"
+
+                setOnClickListener {
+
+                    supplier =
+                        ""
+
+                    supplierStatus.text =
+                        "غير محدد"
+                }
+            },
+            weightWrap()
+        )
+
+        root.addView(
+            supplierRow,
+            matchWrap()
+        )
+
+        addSpace(12)
 
         addText(
             "الكمية الافتراضية",
             16f,
-            darkText
+            dark
         )
 
-        val quantityInput = EditText(this).apply {
-            hint = "0"
-            inputType = InputType.TYPE_CLASS_NUMBER
-            textSize = 18f
+        val quantityInput =
+            EditText(this).apply {
 
-            if (
-                medicine != null &&
-                medicine.defaultQuantity > 0
-            ) {
-                setText(
-                    medicine.defaultQuantity.toString()
-                )
+                inputType =
+                    InputType.TYPE_CLASS_NUMBER
+
+                hint =
+                    "0"
+
+                if (
+                    (medicine
+                        ?.defaultQuantity
+                        ?: 0) > 0
+                ) {
+
+                    setText(
+                        medicine!!
+                            .defaultQuantity
+                            .toString()
+                    )
+                }
             }
-        }
 
-        root.addView(quantityInput, matchWrap())
+        root.addView(
+            quantityInput,
+            matchWrap()
+        )
 
-        addSpace(15)
+        addSpace(12)
 
         addText(
             "ملاحظات",
             16f,
-            darkText
+            dark
         )
 
-        val notesInput = EditText(this).apply {
-            hint = "اختياري"
-            textSize = 17f
-            minLines = 2
-            setText(medicine?.notes ?: "")
-        }
+        val notesInput =
+            EditText(this).apply {
 
-        root.addView(notesInput, matchWrap())
+                minLines =
+                    2
 
-        addSpace(25)
+                setText(
+                    medicine?.notes
+                        ?: ""
+                )
+            }
+
+        root.addView(
+            notesInput,
+            matchWrap()
+        )
+
+        addSpace(20)
 
         addButton(
-            if (editing) "حفظ التعديل"
-            else "إضافة العلاج",
+            if (editing)
+                "حفظ التعديل"
+            else
+                "إضافة العلاج",
             green
         ) {
 
-            val name =
-                nameInput.text.toString().trim()
+            val medicineName =
+                nameInput
+                    .text
+                    .toString()
+                    .trim()
 
-            if (name.isBlank()) {
-                toast("اكتب اسم العلاج")
+            if (
+                medicineName.isBlank()
+            ) {
+
+                toast(
+                    "اكتب اسم العلاج"
+                )
+
                 return@addButton
             }
 
             val quantity =
-                quantityInput.text
+                quantityInput
+                    .text
                     .toString()
-                    .toIntOrNull() ?: 0
+                    .toIntOrNull()
+                    ?: 0
 
-            val notes =
-                notesInput.text
-                    .toString()
-                    .trim()
+            if (
+                medicine == null
+            ) {
 
-            if (medicine == null) {
-
-                medicineStorage.addMedicine(
-                    name = name,
-                    supplier = selectedSupplier,
-                    quantity = quantity,
-                    notes = notes
-                )
-
-                toast("تمت إضافة العلاج")
+                medicineStorage
+                    .addMedicine(
+                        medicineName,
+                        supplier,
+                        quantity,
+                        notesInput
+                            .text
+                            .toString()
+                    )
 
             } else {
 
-                medicineStorage.updateMedicine(
-                    medicine.copy(
-                        name = name,
-                        defaultSupplier = selectedSupplier,
-                        defaultQuantity = quantity,
-                        notes = notes
-                    )
-                )
+                medicineStorage
+                    .updateMedicine(
 
-                toast("تم حفظ التعديل")
+                        medicine.copy(
+
+                            name =
+                                medicineName,
+
+                            defaultSupplier =
+                                supplier,
+
+                            defaultQuantity =
+                                quantity,
+
+                            notes =
+                                notesInput
+                                    .text
+                                    .toString()
+                                    .trim()
+                        )
+                    )
             }
 
-            showDatabase()
+            toast(
+                if (editing)
+                    "تم حفظ التعديل"
+                else
+                    "تمت إضافة العلاج"
+            )
+
+            showDatabase(
+                "",
+                true
+            )
         }
 
-        addSpace(10)
+        addSpace(8)
 
         addButton(
             "إلغاء",
             Color.DKGRAY
         ) {
-            showDatabase()
+
+            showDatabase(
+                "",
+                true
+            )
         }
     }
 
@@ -516,24 +1005,39 @@ class MainActivity : AppCompatActivity() {
         medicine: Medicine
     ) {
 
-        AlertDialog.Builder(this)
-            .setTitle("حذف العلاج")
+        AlertDialog
+            .Builder(this)
+            .setTitle(
+                "حذف العلاج"
+            )
             .setMessage(
                 "هل تريد حذف ${medicine.name}؟"
             )
-            .setPositiveButton("حذف") { _, _ ->
+            .setPositiveButton(
+                "حذف"
+            ) { _, _ ->
 
-                medicineStorage.deleteMedicine(
-                    medicine.id
+                databaseScrollY =
+                    scrollView.scrollY
+
+                medicineStorage
+                    .deleteMedicine(
+                        medicine.id
+                    )
+
+                orderStorage
+                    .removeOrderItem(
+                        medicine.id
+                    )
+
+                toast(
+                    "تم حذف العلاج"
                 )
 
-                orderStorage.removeOrderItem(
-                    medicine.id
+                showDatabase(
+                    "",
+                    true
                 )
-
-                toast("تم حذف العلاج")
-
-                showDatabase()
             }
             .setNegativeButton(
                 "إلغاء",
@@ -542,10 +1046,6 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    // =====================================================
-    // بدء الطلبية
-    // =====================================================
-
     private fun startOrder() {
 
         currentMedicines =
@@ -553,17 +1053,25 @@ class MainActivity : AppCompatActivity() {
                 .getMedicines()
                 .toMutableList()
 
-        if (currentMedicines.isEmpty()) {
+        if (
+            currentMedicines.isEmpty()
+        ) {
 
-            AlertDialog.Builder(this)
-                .setTitle("قاعدة البيانات فارغة")
+            AlertDialog
+                .Builder(this)
+                .setTitle(
+                    "قاعدة البيانات فارغة"
+                )
                 .setMessage(
                     "أضف العلاجات أولاً."
                 )
                 .setPositiveButton(
                     "إضافة علاج"
                 ) { _, _ ->
-                    showMedicineEditor(null)
+
+                    showMedicineEditor(
+                        null
+                    )
                 }
                 .setNegativeButton(
                     "إلغاء",
@@ -575,155 +1083,153 @@ class MainActivity : AppCompatActivity() {
         }
 
         currentIndex =
-            orderStorage.getCurrentIndex()
-
-        if (
-            currentIndex < 0 ||
-            currentIndex >= currentMedicines.size
-        ) {
-            currentIndex = 0
-        }
+            orderStorage
+                .getCurrentIndex()
+                .coerceIn(
+                    0,
+                    currentMedicines.lastIndex
+                )
 
         showOrderMedicine()
     }
 
-    // =====================================================
-    // العلاج الحالي
-    // =====================================================
-
     private fun showOrderMedicine() {
+
         hideKeyboard()
+
         root.removeAllViews()
 
-        if (currentMedicines.isEmpty()) {
+        if (
+            currentMedicines.isEmpty()
+        ) {
+
             showHome()
             return
         }
 
-        if (currentIndex < 0) {
-            currentIndex = 0
-        }
-
-        if (currentIndex >= currentMedicines.size) {
-            currentIndex = currentMedicines.size - 1
-        }
+        currentIndex =
+            currentIndex.coerceIn(
+                0,
+                currentMedicines.lastIndex
+            )
 
         val medicine =
-            currentMedicines[currentIndex]
+            currentMedicines[
+                currentIndex
+            ]
 
         val existing =
             orderStorage
                 .getOrderItems()
                 .firstOrNull {
-                    it.medicineId == medicine.id
+
+                    it.medicineId ==
+                            medicine.id
                 }
 
         addTopBar(
             "الطلبية"
         ) {
+
             showHome()
         }
-
-        addSpace(10)
 
         addText(
             "${currentIndex + 1} / ${currentMedicines.size}",
             16f,
-            grayText
+            gray
         )
 
-        addSpace(25)
+        addSpace(15)
 
-        val name = TextView(this).apply {
-            text = medicine.name
-            textSize = 29f
-            gravity = Gravity.CENTER
-            setTextColor(darkText)
-            setPadding(15, 30, 15, 30)
-            setBackgroundColor(Color.WHITE)
-        }
+        addTitle(
+            medicine.name
+        )
 
-        root.addView(name, matchWrap())
-
-        if (medicine.notes.isNotBlank()) {
-            addSpace(10)
+        if (
+            medicine
+                .notes
+                .isNotBlank()
+        ) {
 
             addText(
                 medicine.notes,
                 15f,
-                grayText
+                gray
             )
         }
 
-        addSpace(25)
+        addSpace(15)
 
         addText(
             "الكمية المطلوبة",
             17f,
-            darkText
+            dark
         )
 
-        val quantityInput = EditText(this).apply {
-            hint = "اكتب العدد"
-            inputType = InputType.TYPE_CLASS_NUMBER
-            textSize = 25f
-            gravity = Gravity.CENTER
-            setSingleLine(true)
+        val quantityInput =
+            EditText(this).apply {
 
-            val qty =
-                existing?.quantity
-                    ?: medicine.defaultQuantity
+                inputType =
+                    InputType.TYPE_CLASS_NUMBER
 
-            if (qty > 0) {
-                setText(qty.toString())
-                selectAll()
+                textSize =
+                    25f
+
+                gravity =
+                    Gravity.CENTER
+
+                setSingleLine(
+                    true
+                )
+
+                val quantity =
+                    existing?.quantity
+                        ?: medicine.defaultQuantity
+
+                if (
+                    quantity > 0
+                ) {
+
+                    setText(
+                        quantity.toString()
+                    )
+
+                    selectAll()
+                }
             }
-        }
 
         root.addView(
             quantityInput,
             LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+                -1,
                 140
             )
         )
 
-        addSpace(20)
+        addSpace(12)
 
-        addText(
-            "اختر المذخر",
-            17f,
-            darkText
-        )
-
-        var selectedSupplier =
+        var supplier =
             existing?.supplier
                 ?: medicine.defaultSupplier
 
-        val supplierStatus = TextView(this).apply {
+        val supplierStatus =
+            TextView(this).apply {
 
-            text =
-                if (selectedSupplier.isBlank()) {
-                    "لم يتم اختيار مذخر"
-                } else {
-                    "المذخر: $selectedSupplier"
-                }
+                text =
+                    "المذخر: ${
+                        if (supplier.isBlank())
+                            "غير محدد"
+                        else
+                            supplier
+                    }"
 
-            textSize = 18f
-            gravity = Gravity.CENTER
-            setPadding(10, 18, 10, 18)
+                gravity =
+                    Gravity.CENTER
 
-            when (selectedSupplier) {
-                "أمازون" ->
-                    setTextColor(blue)
-
-                "راية" ->
-                    setTextColor(green)
-
-                else ->
-                    setTextColor(grayText)
+                textSize =
+                    17f
             }
-        }
 
         root.addView(
             supplierStatus,
@@ -732,60 +1238,45 @@ class MainActivity : AppCompatActivity() {
 
         val supplierRow =
             LinearLayout(this).apply {
+
                 orientation =
                     LinearLayout.HORIZONTAL
             }
 
-        val amazon = Button(this).apply {
-            text = "أمازون"
-            textSize = 18f
-            isAllCaps = false
-
-            setOnClickListener {
-                selectedSupplier = "أمازون"
-
-                supplierStatus.text =
-                    "المذخر: أمازون"
-
-                supplierStatus.setTextColor(
-                    blue
-                )
-            }
-        }
-
-        val raya = Button(this).apply {
-            text = "راية"
-            textSize = 18f
-            isAllCaps = false
-
-            setOnClickListener {
-                selectedSupplier = "راية"
-
-                supplierStatus.text =
-                    "المذخر: راية"
-
-                supplierStatus.setTextColor(
-                    green
-                )
-            }
-        }
-
         supplierRow.addView(
-            amazon,
-            LinearLayout.LayoutParams(
-                0,
-                140,
-                1f
-            )
+            Button(this).apply {
+
+                text =
+                    "أمازون"
+
+                setOnClickListener {
+
+                    supplier =
+                        "أمازون"
+
+                    supplierStatus.text =
+                        "المذخر: أمازون"
+                }
+            },
+            weightWrap()
         )
 
         supplierRow.addView(
-            raya,
-            LinearLayout.LayoutParams(
-                0,
-                140,
-                1f
-            )
+            Button(this).apply {
+
+                text =
+                    "راية"
+
+                setOnClickListener {
+
+                    supplier =
+                        "راية"
+
+                    supplierStatus.text =
+                        "المذخر: راية"
+                }
+            },
+            weightWrap()
         )
 
         root.addView(
@@ -793,7 +1284,54 @@ class MainActivity : AppCompatActivity() {
             matchWrap()
         )
 
-        addSpace(25)
+        addSpace(15)
+
+        fun saveAndGo(
+            change: Int
+        ) {
+
+            val quantity =
+                quantityInput
+                    .text
+                    .toString()
+                    .toIntOrNull()
+                    ?: 0
+
+            orderStorage
+                .saveOrderItem(
+
+                    OrderItem(
+                        medicineId =
+                            medicine.id,
+
+                        medicineName =
+                            medicine.name,
+
+                        quantity =
+                            quantity,
+
+                        supplier =
+                            supplier,
+
+                        notes =
+                            medicine.notes
+                    )
+                )
+
+            currentIndex =
+                (currentIndex + change)
+                    .coerceIn(
+                        0,
+                        currentMedicines.lastIndex
+                    )
+
+            orderStorage
+                .saveCurrentIndex(
+                    currentIndex
+                )
+
+            showOrderMedicine()
+        }
 
         addButton(
             "حفظ والذهاب للتالي",
@@ -801,701 +1339,500 @@ class MainActivity : AppCompatActivity() {
         ) {
 
             val quantity =
-                quantityInput.text
+                quantityInput
+                    .text
                     .toString()
-                    .toIntOrNull() ?: 0
+                    .toIntOrNull()
+                    ?: 0
 
-            if (quantity <= 0) {
-                toast("اكتب الكمية")
-                return@addButton
-            }
+            orderStorage
+                .saveOrderItem(
 
-            if (selectedSupplier.isBlank()) {
-                toast("اختر أمازون أو راية")
-                return@addButton
-            }
+                    OrderItem(
+                        medicineId =
+                            medicine.id,
 
-            orderStorage.saveOrderItem(
-                OrderItem(
-                    medicineId = medicine.id,
-                    medicineName = medicine.name,
-                    quantity = quantity,
-                    supplier = selectedSupplier,
-                    notes = medicine.notes
-                )
-            )
+                        medicineName =
+                            medicine.name,
 
-            goNext()
-        }
+                        quantity =
+                            quantity,
 
-        addSpace(10)
+                        supplier =
+                            supplier,
 
-        val navigation =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.HORIZONTAL
-            }
-
-        val previous = Button(this).apply {
-            text = "السابق"
-            isAllCaps = false
-            isEnabled = currentIndex > 0
-
-            setOnClickListener {
-
-                saveOptionalItem(
-                    medicine,
-                    quantityInput,
-                    selectedSupplier
+                        notes =
+                            medicine.notes
+                    )
                 )
 
-                if (currentIndex > 0) {
-                    currentIndex--
+            if (
+                currentIndex <
+                currentMedicines.lastIndex
+            ) {
 
-                    orderStorage.saveCurrentIndex(
+                currentIndex++
+
+                orderStorage
+                    .saveCurrentIndex(
                         currentIndex
                     )
 
-                    showOrderMedicine()
-                }
-            }
-        }
+                showOrderMedicine()
 
-        val skip = Button(this).apply {
-            text = "تخطي"
-            isAllCaps = false
+            } else {
 
-            setOnClickListener {
-                goNext()
-            }
-        }
-
-        navigation.addView(
-            previous,
-            LinearLayout.LayoutParams(
-                0,
-                125,
-                1f
-            )
-        )
-
-        navigation.addView(
-            skip,
-            LinearLayout.LayoutParams(
-                0,
-                125,
-                1f
-            )
-        )
-
-        root.addView(
-            navigation,
-            matchWrap()
-        )
-
-        addSpace(15)
-
-        addButton(
-            "مراجعة الطلبية",
-            purple
-        ) {
-
-            saveOptionalItem(
-                medicine,
-                quantityInput,
-                selectedSupplier
-            )
-
-            showCurrentOrder()
-        }
-    }
-
-    private fun saveOptionalItem(
-        medicine: Medicine,
-        quantityInput: EditText,
-        supplier: String
-    ) {
-
-        val quantity =
-            quantityInput.text
-                .toString()
-                .toIntOrNull() ?: 0
-
-        if (
-            quantity > 0 &&
-            supplier.isNotBlank()
-        ) {
-
-            orderStorage.saveOrderItem(
-                OrderItem(
-                    medicineId = medicine.id,
-                    medicineName = medicine.name,
-                    quantity = quantity,
-                    supplier = supplier,
-                    notes = medicine.notes
-                )
-            )
-        }
-    }
-
-    private fun goNext() {
-
-        if (
-            currentIndex <
-            currentMedicines.size - 1
-        ) {
-
-            currentIndex++
-
-            orderStorage.saveCurrentIndex(
-                currentIndex
-            )
-
-            showOrderMedicine()
-
-        } else {
-
-            orderStorage.saveCurrentIndex(0)
-
-            AlertDialog.Builder(this)
-                .setTitle("اكتملت القائمة")
-                .setMessage(
-                    "وصلت إلى آخر علاج."
-                )
-                .setPositiveButton(
-                    "مراجعة الطلبية"
-                ) { _, _ ->
-                    showCurrentOrder()
-                }
-                .setNegativeButton(
-                    "الرئيسية"
-                ) { _, _ ->
-                    showHome()
-                }
-                .show()
-        }
-    }
-
-    // =====================================================
-    // مراجعة الطلبية
-    // =====================================================
-
-    private fun showCurrentOrder() {
-        hideKeyboard()
-        root.removeAllViews()
-
-        addTopBar(
-            "الطلبية الحالية"
-        ) {
-            showHome()
-        }
-
-        val items =
-            orderStorage.getOrderItems()
-
-        addSpace(10)
-
-        addText(
-            "عدد المواد: ${items.size}",
-            16f,
-            grayText
-        )
-
-        addSpace(15)
-
-        if (items.isEmpty()) {
-
-            addText(
-                "لا توجد مواد في الطلبية.",
-                18f,
-                grayText
-            )
-
-            addSpace(20)
-
-            addButton(
-                "ابدأ الطلبية",
-                blue
-            ) {
-                startOrder()
-            }
-
-            return
-        }
-
-        val amazon =
-            items.filter {
-                it.supplier == "أمازون"
-            }
-
-        val raya =
-            items.filter {
-                it.supplier == "راية"
-            }
-
-        if (amazon.isNotEmpty()) {
-
-            addSectionTitle(
-                "أمازون (${amazon.size})",
-                blue
-            )
-
-            amazon.forEach {
-                addOrderItemCard(it)
-            }
-        }
-
-        if (raya.isNotEmpty()) {
-
-            addSectionTitle(
-                "راية (${raya.size})",
-                green
-            )
-
-            raya.forEach {
-                addOrderItemCard(it)
-            }
-        }
-
-        addSpace(20)
-
-        addButton(
-            "نسخ الطلبية كاملة",
-            blue
-        ) {
-            copyText(
-                orderStorage.buildOrderText()
-            )
-        }
-
-        if (amazon.isNotEmpty()) {
-            addSpace(10)
-
-            addButton(
-                "نسخ طلبية أمازون",
-                blue
-            ) {
-                copySupplierOrder(
-                    "أمازون",
-                    amazon
-                )
-            }
-        }
-
-        if (raya.isNotEmpty()) {
-            addSpace(10)
-
-            addButton(
-                "نسخ طلبية راية",
-                green
-            ) {
-                copySupplierOrder(
-                    "راية",
-                    raya
-                )
-            }
-        }
-
-        addSpace(10)
-
-        addButton(
-            "مشاركة الطلبية",
-            purple
-        ) {
-            shareOrder(
-                orderStorage.buildOrderText()
-            )
-        }
-
-        addSpace(10)
-
-        addButton(
-            "متابعة الطلبية",
-            Color.DKGRAY
-        ) {
-            startOrder()
-        }
-
-        addSpace(10)
-
-        addButton(
-            "طلبية جديدة",
-            red
-        ) {
-            confirmNewOrder()
-        }
-    }
-
-    private fun addOrderItemCard(
-        item: OrderItem
-    ) {
-
-        val card =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.VERTICAL
-
-                setPadding(
-                    20,
-                    15,
-                    20,
-                    15
-                )
-
-                setBackgroundColor(
-                    Color.WHITE
-                )
-            }
-
-        val name =
-            TextView(this).apply {
-                text =
-                    "${item.medicineName} × ${item.quantity}"
-
-                textSize = 18f
-                setTextColor(darkText)
-            }
-
-        card.addView(
-            name,
-            matchWrap()
-        )
-
-        val row =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.HORIZONTAL
-            }
-
-        val edit = Button(this).apply {
-            text = "تعديل"
-            isAllCaps = false
-
-            setOnClickListener {
-                editOrderItem(item)
-            }
-        }
-
-        val delete = Button(this).apply {
-            text = "حذف"
-            isAllCaps = false
-            setTextColor(red)
-
-            setOnClickListener {
-
-                orderStorage.removeOrderItem(
-                    item.medicineId
+                toast(
+                    "وصلت إلى آخر مادة"
                 )
 
                 showCurrentOrder()
             }
         }
 
-        row.addView(
-            edit,
-            LinearLayout.LayoutParams(
-                0,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                1f
-            )
-        )
-
-        row.addView(
-            delete,
-            LinearLayout.LayoutParams(
-                0,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                1f
-            )
-        )
-
-        card.addView(
-            row,
-            matchWrap()
-        )
-
-        root.addView(
-            card,
-            matchWrap()
-        )
-
         addSpace(8)
-    }
 
-    // =====================================================
-    // تعديل مادة بالطلبية
-    // =====================================================
-
-    private fun editOrderItem(
-        item: OrderItem
-    ) {
-
-        val layout =
+        val navigationRow =
             LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.VERTICAL
 
-                setPadding(
-                    40,
-                    10,
-                    40,
-                    10
-                )
-            }
-
-        val quantity =
-            EditText(this).apply {
-                inputType =
-                    InputType.TYPE_CLASS_NUMBER
-
-                setText(
-                    item.quantity.toString()
-                )
-
-                selectAll()
-            }
-
-        layout.addView(quantity)
-
-        var supplier =
-            item.supplier
-
-        val status =
-            TextView(this).apply {
-                text =
-                    "المذخر: $supplier"
-
-                gravity =
-                    Gravity.CENTER
-
-                textSize = 17f
-
-                setPadding(
-                    5,
-                    15,
-                    5,
-                    15
-                )
-            }
-
-        layout.addView(status)
-
-        val row =
-            LinearLayout(this).apply {
                 orientation =
                     LinearLayout.HORIZONTAL
             }
 
-        val amazon =
+        navigationRow.addView(
             Button(this).apply {
-                text = "أمازون"
-                isAllCaps = false
+
+                text =
+                    "السابق"
+
+                isEnabled =
+                    currentIndex > 0
 
                 setOnClickListener {
-                    supplier = "أمازون"
-                    status.text =
-                        "المذخر: أمازون"
-                }
-            }
 
-        val raya =
+                    saveAndGo(
+                        -1
+                    )
+                }
+            },
+            weightWrap()
+        )
+
+        navigationRow.addView(
             Button(this).apply {
-                text = "راية"
-                isAllCaps = false
+
+                text =
+                    "التالي"
+
+                isEnabled =
+                    currentIndex <
+                    currentMedicines.lastIndex
 
                 setOnClickListener {
-                    supplier = "راية"
-                    status.text =
-                        "المذخر: راية"
+
+                    saveAndGo(
+                        1
+                    )
                 }
-            }
-
-        row.addView(
-            amazon,
-            LinearLayout.LayoutParams(
-                0,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                1f
-            )
+            },
+            weightWrap()
         )
 
-        row.addView(
-            raya,
-            LinearLayout.LayoutParams(
-                0,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                1f
-            )
+        root.addView(
+            navigationRow,
+            matchWrap()
+        )
+    }
+
+    private fun showCurrentOrder() {
+
+        hideKeyboard()
+
+        root.removeAllViews()
+
+        addTopBar(
+            "الطلبية الحالية"
+        ) {
+
+            showHome()
+        }
+
+        val items =
+            orderStorage
+                .getOrderItems()
+
+        addText(
+            "عدد المواد: ${items.size}",
+            16f,
+            gray
         )
 
-        layout.addView(row)
+        addSpace(10)
 
-        val dialog =
-            AlertDialog.Builder(this)
-                .setTitle(item.medicineName)
-                .setView(layout)
-                .setPositiveButton(
-                    "حفظ",
-                    null
+        if (
+            items.isEmpty()
+        ) {
+
+            addText(
+                "لا توجد مواد في الطلبية الحالية.",
+                18f,
+                gray
+            )
+
+            return
+        }
+
+        items.forEachIndexed {
+                index,
+                item ->
+
+            val card =
+                LinearLayout(this).apply {
+
+                    orientation =
+                        LinearLayout.VERTICAL
+
+                    setPadding(
+                        18,
+                        14,
+                        18,
+                        14
+                    )
+
+                    setBackgroundColor(
+                        Color.WHITE
+                    )
+                }
+
+            card.addView(
+                TextView(this).apply {
+
+                    text =
+                        "${index + 1}. ${item.medicineName} — عدد ${item.quantity}"
+
+                    textSize =
+                        18f
+                },
+                matchWrap()
+            )
+
+            card.addView(
+                TextView(this).apply {
+
+                    text =
+                        "المذخر: ${
+                            if (item.supplier.isBlank())
+                                "غير محدد"
+                            else
+                                item.supplier
+                        }"
+
+                    textSize =
+                        14f
+
+                    setTextColor(
+                        gray
+                    )
+                },
+                matchWrap()
+            )
+
+            root.addView(
+                card,
+                matchWrap()
+            )
+
+            addSpace(7)
+        }
+
+        addButton(
+            "نسخ الطلبية",
+            blue
+        ) {
+
+            val clipboard =
+                getSystemService(
+                    Context.CLIPBOARD_SERVICE
+                ) as ClipboardManager
+
+            clipboard.setPrimaryClip(
+
+                ClipData.newPlainText(
+                    "طلباتي اليومية",
+                    orderStorage
+                        .buildOrderText()
                 )
+            )
+
+            toast(
+                "تم نسخ الطلبية"
+            )
+        }
+
+        addSpace(10)
+
+        addButton(
+            "إكمال الطلبية وحفظها بالسجل",
+            green
+        ) {
+
+            AlertDialog
+                .Builder(this)
+                .setTitle(
+                    "إكمال الطلبية"
+                )
+                .setMessage(
+                    "سيتم حفظ هذه الطلبية ضمن سجل معدل الصرف لآخر 30 يوم، ثم تبدأ طلبية جديدة."
+                )
+                .setPositiveButton(
+                    "حفظ وإكمال"
+                ) { _, _ ->
+
+                    if (
+                        orderStorage
+                            .completeCurrentOrder()
+                    ) {
+
+                        toast(
+                            "تم حفظ الطلبية في السجل"
+                        )
+
+                        showHome()
+                    }
+                }
                 .setNegativeButton(
                     "إلغاء",
                     null
                 )
-                .create()
+                .show()
+        }
+    }
 
-        dialog.setOnShowListener {
+    private fun showMonthlyUsage() {
 
-            dialog
-                .getButton(
-                    AlertDialog.BUTTON_POSITIVE
-                )
-                .setOnClickListener {
+        hideKeyboard()
 
-                    val qty =
-                        quantity.text
-                            .toString()
-                            .toIntOrNull()
-                            ?: 0
+        root.removeAllViews()
 
-                    if (qty <= 0) {
-                        toast(
-                            "الكمية غير صحيحة"
-                        )
-                        return@setOnClickListener
-                    }
+        addTopBar(
+            "معدل الصرف الشهري"
+        ) {
 
-                    orderStorage.saveOrderItem(
-                        item.copy(
-                            quantity = qty,
-                            supplier = supplier
-                        )
+            showHome()
+        }
+
+        addText(
+            "مجموع الكمية المطلوبة لكل مادة خلال آخر 30 يوم",
+            15f,
+            gray
+        )
+
+        addText(
+            "عدد الطلبيات المحفوظة: ${orderStorage.getCompletedOrderCount()}",
+            14f,
+            gray
+        )
+
+        addSpace(12)
+
+        val totals =
+            orderStorage
+                .getMonthlyTotals()
+
+        val medicines =
+            medicineStorage
+                .getMedicines()
+
+        if (
+            medicines.isEmpty()
+        ) {
+
+            addText(
+                "لا توجد مواد.",
+                18f,
+                gray
+            )
+
+            return
+        }
+
+        medicines.forEachIndexed {
+                index,
+                medicine ->
+
+            val total =
+                totals[
+                    medicine.id
+                ] ?: 0
+
+            val card =
+                LinearLayout(this).apply {
+
+                    orientation =
+                        LinearLayout.HORIZONTAL
+
+                    gravity =
+                        Gravity.CENTER_VERTICAL
+
+                    setPadding(
+                        18,
+                        16,
+                        18,
+                        16
                     )
 
-                    dialog.dismiss()
-
-                    showCurrentOrder()
+                    setBackgroundColor(
+                        Color.WHITE
+                    )
                 }
-        }
 
-        dialog.show()
-    }
+            card.addView(
+                TextView(this).apply {
 
-    // =====================================================
-    // نسخ ومشاركة
-    // =====================================================
+                    text =
+                        "${index + 1}. ${medicine.name}"
 
-    private fun copySupplierOrder(
-        supplier: String,
-        items: List<OrderItem>
-    ) {
-
-        val text =
-            StringBuilder()
-
-        text.append(
-            "طلبية $supplier\n"
-        )
-
-        text.append(
-            "--------------------\n"
-        )
-
-        items.forEach { item ->
-
-            text.append(
-                item.medicineName
-            )
-
-            text.append(" عدد ")
-
-            text.append(
-                item.quantity
-            )
-
-            if (
-                item.notes.isNotBlank()
-            ) {
-                text.append(" - ")
-                text.append(item.notes)
-            }
-
-            text.append("\n")
-        }
-
-        copyText(
-            text.toString().trim()
-        )
-    }
-
-    private fun copyText(
-        text: String
-    ) {
-
-        val clipboard =
-            getSystemService(
-                Context.CLIPBOARD_SERVICE
-            ) as ClipboardManager
-
-        clipboard.setPrimaryClip(
-            ClipData.newPlainText(
-                "طلباتي اليومية",
-                text
-            )
-        )
-
-        toast("تم نسخ الطلبية")
-    }
-
-    private fun shareOrder(
-        text: String
-    ) {
-
-        val intent =
-            Intent(
-                Intent.ACTION_SEND
-            ).apply {
-
-                type = "text/plain"
-
-                putExtra(
-                    Intent.EXTRA_TEXT,
-                    text
+                    textSize =
+                        17f
+                },
+                LinearLayout.LayoutParams(
+                    0,
+                    -2,
+                    1f
                 )
-            }
-
-        startActivity(
-            Intent.createChooser(
-                intent,
-                "مشاركة الطلبية"
             )
-        )
+
+            card.addView(
+                TextView(this).apply {
+
+                    text =
+                        total.toString()
+
+                    textSize =
+                        20f
+
+                    gravity =
+                        Gravity.CENTER
+
+                    setTextColor(
+                        if (total > 0)
+                            green
+                        else
+                            gray
+                    )
+                },
+                LinearLayout.LayoutParams(
+                    160,
+                    -2
+                )
+            )
+
+            root.addView(
+                card,
+                matchWrap()
+            )
+
+            addSpace(6)
+        }
     }
 
-    // =====================================================
-    // طلبية جديدة
-    // =====================================================
+    private fun showBackup() {
+
+        hideKeyboard()
+
+        root.removeAllViews()
+
+        addTopBar(
+            "النسخ الاحتياطي والاستعادة"
+        ) {
+
+            showHome()
+        }
+
+        addSpace(15)
+
+        addText(
+            "النسخة تشمل قاعدة العلاجات وترتيبها والطلبية الحالية وسجل الطلبيات.",
+            16f,
+            gray
+        )
+
+        addSpace(20)
+
+        addButton(
+            "إنشاء نسخة احتياطية",
+            green
+        ) {
+
+            val date =
+                SimpleDateFormat(
+                    "yyyy-MM-dd",
+                    Locale.US
+                ).format(
+                    Date()
+                )
+
+            createBackup.launch(
+                "Talabati-Daily-Backup-$date.json"
+            )
+        }
+
+        addSpace(12)
+
+        addButton(
+            "استعادة نسخة احتياطية",
+            orange
+        ) {
+
+            AlertDialog
+                .Builder(this)
+                .setTitle(
+                    "استعادة النسخة"
+                )
+                .setMessage(
+                    "الاستعادة ستستبدل البيانات الحالية بالبيانات الموجودة داخل ملف النسخة الاحتياطية."
+                )
+                .setPositiveButton(
+                    "اختيار الملف"
+                ) { _, _ ->
+
+                    restoreBackup.launch(
+                        arrayOf(
+                            "application/json",
+                            "text/plain"
+                        )
+                    )
+                }
+                .setNegativeButton(
+                    "إلغاء",
+                    null
+                )
+                .show()
+        }
+    }
 
     private fun confirmNewOrder() {
 
-        AlertDialog.Builder(this)
-            .setTitle("طلبية جديدة")
+        AlertDialog
+            .Builder(this)
+            .setTitle(
+                "بدء طلبية جديدة"
+            )
             .setMessage(
-                "سيتم مسح الطلبية الحالية فقط، ولن تُحذف قاعدة بيانات العلاجات."
+                "سيتم مسح الطلبية الحالية فقط. لن تُضاف إلى معدل الصرف لأنها غير مكتملة."
             )
             .setPositiveButton(
-                "بدء طلبية جديدة"
+                "بدء جديدة"
             ) { _, _ ->
 
-                orderStorage.clearOrder()
-
-                currentIndex = 0
+                orderStorage
+                    .clearOrder()
 
                 toast(
                     "تم بدء طلبية جديدة"
                 )
 
-                startOrder()
+                showHome()
             }
             .setNegativeButton(
                 "إلغاء",
@@ -1504,59 +1841,94 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    // =====================================================
-    // أدوات الواجهة
-    // =====================================================
+    private fun addTopBar(
+        title: String,
+        back: () -> Unit
+    ) {
+
+        val row =
+            LinearLayout(this).apply {
+
+                orientation =
+                    LinearLayout.HORIZONTAL
+
+                gravity =
+                    Gravity.CENTER_VERTICAL
+            }
+
+        row.addView(
+            Button(this).apply {
+
+                text =
+                    "رجوع"
+
+                setOnClickListener {
+
+                    back()
+                }
+            },
+            LinearLayout.LayoutParams(
+                220,
+                -2
+            )
+        )
+
+        row.addView(
+            TextView(this).apply {
+
+                text =
+                    title
+
+                textSize =
+                    21f
+
+                gravity =
+                    Gravity.CENTER
+
+                setTextColor(
+                    dark
+                )
+            },
+            LinearLayout.LayoutParams(
+                0,
+                -2,
+                1f
+            )
+        )
+
+        root.addView(
+            row,
+            matchWrap()
+        )
+    }
 
     private fun addTitle(
         text: String
     ) {
 
-        val view =
+        root.addView(
             TextView(this).apply {
-                this.text = text
-                textSize = 32f
+
+                this.text =
+                    text
+
+                textSize =
+                    28f
+
                 gravity =
                     Gravity.CENTER
-                setTextColor(blue)
+
+                setTextColor(
+                    dark
+                )
 
                 setPadding(
-                    10,
-                    20,
-                    10,
-                    20
+                    8,
+                    15,
+                    8,
+                    15
                 )
-            }
-
-        root.addView(
-            view,
-            matchWrap()
-        )
-    }
-
-    private fun addSectionTitle(
-        text: String,
-        color: Int
-    ) {
-
-        val view =
-            TextView(this).apply {
-                this.text = text
-                textSize = 22f
-                gravity =
-                    Gravity.CENTER
-                setTextColor(color)
-
-                setPadding(
-                    10,
-                    18,
-                    10,
-                    18
-                )
-            }
-
-        root.addView(
-            view,
+            },
             matchWrap()
         )
     }
@@ -1567,81 +1939,29 @@ class MainActivity : AppCompatActivity() {
         color: Int
     ) {
 
-        val view =
+        root.addView(
             TextView(this).apply {
-                this.text = text
-                textSize = size
+
+                this.text =
+                    text
+
+                textSize =
+                    size
+
                 gravity =
                     Gravity.CENTER
-                setTextColor(color)
+
+                setTextColor(
+                    color
+                )
 
                 setPadding(
-                    10,
-                    8,
-                    10,
-                    8
+                    6,
+                    5,
+                    6,
+                    5
                 )
-            }
-
-        root.addView(
-            view,
-            matchWrap()
-        )
-    }
-
-    private fun addTopBar(
-        title: String,
-        onBack: () -> Unit
-    ) {
-
-        val row =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.HORIZONTAL
-
-                gravity =
-                    Gravity.CENTER_VERTICAL
-            }
-
-        val back =
-            Button(this).apply {
-                text = "رجوع"
-                isAllCaps = false
-
-                setOnClickListener {
-                    onBack()
-                }
-            }
-
-        val titleView =
-            TextView(this).apply {
-                text = title
-                textSize = 22f
-                gravity =
-                    Gravity.CENTER
-                setTextColor(blue)
-            }
-
-        row.addView(
-            back,
-            LinearLayout.LayoutParams(
-                0,
-                120,
-                0.35f
-            )
-        )
-
-        row.addView(
-            titleView,
-            LinearLayout.LayoutParams(
-                0,
-                120,
-                0.65f
-            )
-        )
-
-        root.addView(
-            row,
+            },
             matchWrap()
         )
     }
@@ -1652,11 +1972,17 @@ class MainActivity : AppCompatActivity() {
         action: () -> Unit
     ) {
 
-        val button =
+        root.addView(
             Button(this).apply {
-                this.text = text
-                textSize = 18f
-                isAllCaps = false
+
+                this.text =
+                    text
+
+                isAllCaps =
+                    false
+
+                textSize =
+                    17f
 
                 setTextColor(
                     Color.WHITE
@@ -1667,15 +1993,13 @@ class MainActivity : AppCompatActivity() {
                 )
 
                 setOnClickListener {
+
                     action()
                 }
-            }
-
-        root.addView(
-            button,
+            },
             LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                145
+                -1,
+                135
             )
         )
     }
@@ -1684,23 +2008,31 @@ class MainActivity : AppCompatActivity() {
         height: Int
     ) {
 
-        val space = View(this)
-
         root.addView(
-            space,
+            View(this),
             LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+                1,
                 height
             )
         )
     }
 
     private fun matchWrap():
-        LinearLayout.LayoutParams {
+            LinearLayout.LayoutParams {
 
         return LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
+            -1,
+            -2
+        )
+    }
+
+    private fun weightWrap():
+            LinearLayout.LayoutParams {
+
+        return LinearLayout.LayoutParams(
+            0,
+            -2,
+            1f
         )
     }
 
@@ -1708,33 +2040,29 @@ class MainActivity : AppCompatActivity() {
         message: String
     ) {
 
-        Toast.makeText(
-            this,
-            message,
-            Toast.LENGTH_SHORT
-        ).show()
+        Toast
+            .makeText(
+                this,
+                message,
+                Toast.LENGTH_SHORT
+            )
+            .show()
     }
 
     private fun hideKeyboard() {
 
-        val view =
-            currentFocus ?: return
+        currentFocus?.let {
 
-        val manager =
-            getSystemService(
-                Context.INPUT_METHOD_SERVICE
-            ) as InputMethodManager
+            val keyboard =
+                getSystemService(
+                    Context.INPUT_METHOD_SERVICE
+                ) as InputMethodManager
 
-        manager.hideSoftInputFromWindow(
-            view.windowToken,
-            0
-        )
-
-        view.clearFocus()
-    }
-
-    @Deprecated("Deprecated in Java")
-    override fun onBackPressed() {
-        showHome()
+            keyboard
+                .hideSoftInputFromWindow(
+                    it.windowToken,
+                    0
+                )
+        }
     }
 }
