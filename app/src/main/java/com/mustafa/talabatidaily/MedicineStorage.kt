@@ -6,52 +6,45 @@ import org.json.JSONObject
 
 class MedicineStorage(context: Context) {
 
-    private val preferences = context.getSharedPreferences(
-        "talabati_daily_database",
-        Context.MODE_PRIVATE
-    )
+    private val preferences =
+        context.getSharedPreferences(
+            "talabati_daily_database",
+            Context.MODE_PRIVATE
+        )
 
     companion object {
         private const val KEY_MEDICINES = "medicines"
         private const val KEY_NEXT_ID = "next_medicine_id"
     }
 
-    // جلب جميع العلاجات
     fun getMedicines(): MutableList<Medicine> {
 
-        val json = preferences.getString(KEY_MEDICINES, null)
-            ?: return mutableListOf()
+        val json =
+            preferences.getString(KEY_MEDICINES, null)
+                ?: return mutableListOf()
 
         return try {
 
             val array = JSONArray(json)
 
-            val medicines = mutableListOf<Medicine>()
-
-            for (i in 0 until array.length()) {
+            MutableList(array.length()) { i ->
 
                 val item = array.getJSONObject(i)
 
-                medicines.add(
-                    Medicine(
-                        id = item.optLong("id"),
-                        name = item.optString("name"),
-                        defaultSupplier = item.optString("supplier"),
-                        defaultQuantity = item.optInt("quantity"),
-                        notes = item.optString("notes")
-                    )
+                Medicine(
+                    id = item.optLong("id"),
+                    name = item.optString("name"),
+                    defaultSupplier = item.optString("supplier"),
+                    defaultQuantity = item.optInt("quantity"),
+                    notes = item.optString("notes")
                 )
             }
 
-            medicines
-
-        } catch (e: Exception) {
-
+        } catch (_: Exception) {
             mutableListOf()
         }
     }
 
-    // إضافة علاج جديد
     fun addMedicine(
         name: String,
         supplier: String = "",
@@ -76,16 +69,18 @@ class MedicineStorage(context: Context) {
         return medicine
     }
 
-    // تعديل علاج موجود
-    fun updateMedicine(updatedMedicine: Medicine): Boolean {
+    fun updateMedicine(
+        updatedMedicine: Medicine
+    ): Boolean {
 
         val medicines = getMedicines()
 
-        val index = medicines.indexOfFirst {
-            it.id == updatedMedicine.id
-        }
+        val index =
+            medicines.indexOfFirst {
+                it.id == updatedMedicine.id
+            }
 
-        if (index == -1) {
+        if (index < 0) {
             return false
         }
 
@@ -96,14 +91,16 @@ class MedicineStorage(context: Context) {
         return true
     }
 
-    // حذف علاج
-    fun deleteMedicine(id: Long): Boolean {
+    fun deleteMedicine(
+        id: Long
+    ): Boolean {
 
         val medicines = getMedicines()
 
-        val removed = medicines.removeAll {
-            it.id == id
-        }
+        val removed =
+            medicines.removeAll {
+                it.id == id
+            }
 
         if (removed) {
             saveMedicines(medicines)
@@ -112,70 +109,191 @@ class MedicineStorage(context: Context) {
         return removed
     }
 
-    // البحث عن علاج
-    fun searchMedicines(query: String): List<Medicine> {
+    fun moveUp(
+        id: Long
+    ): Boolean {
+
+        val medicines = getMedicines()
+
+        val index =
+            medicines.indexOfFirst {
+                it.id == id
+            }
+
+        if (index <= 0) {
+            return false
+        }
+
+        val previous =
+            medicines[index - 1]
+
+        medicines[index - 1] =
+            medicines[index]
+
+        medicines[index] =
+            previous
+
+        saveMedicines(medicines)
+
+        return true
+    }
+
+    fun moveDown(
+        id: Long
+    ): Boolean {
+
+        val medicines = getMedicines()
+
+        val index =
+            medicines.indexOfFirst {
+                it.id == id
+            }
+
+        if (
+            index < 0 ||
+            index >= medicines.lastIndex
+        ) {
+            return false
+        }
+
+        val next =
+            medicines[index + 1]
+
+        medicines[index + 1] =
+            medicines[index]
+
+        medicines[index] =
+            next
+
+        saveMedicines(medicines)
+
+        return true
+    }
+
+    fun searchMedicines(
+        query: String
+    ): List<Medicine> {
 
         if (query.isBlank()) {
             return getMedicines()
         }
 
+        val text =
+            query.trim()
+
         return getMedicines().filter {
 
             it.name.contains(
-                query.trim(),
+                text,
                 ignoreCase = true
             ) ||
 
             it.notes.contains(
-                query.trim(),
+                text,
                 ignoreCase = true
             )
         }
     }
 
-    // حذف جميع العلاجات
-    fun deleteAllMedicines() {
-
-        preferences.edit()
-            .remove(KEY_MEDICINES)
-            .apply()
-    }
-
-    // عدد العلاجات
     fun count(): Int {
+
         return getMedicines().size
     }
 
-    // حفظ القائمة كاملة
+    fun exportJson(): JSONObject {
+
+        return JSONObject().apply {
+
+            put(
+                "medicines",
+                preferences.getString(
+                    KEY_MEDICINES,
+                    "[]"
+                ) ?: "[]"
+            )
+
+            put(
+                "nextId",
+                preferences.getLong(
+                    KEY_NEXT_ID,
+                    1L
+                )
+            )
+        }
+    }
+
+    fun importJson(
+        obj: JSONObject
+    ) {
+
+        val raw =
+            obj.optString(
+                "medicines",
+                "[]"
+            )
+
+        // التأكد من أن البيانات صحيحة
+        JSONArray(raw)
+
+        preferences
+            .edit()
+            .putString(
+                KEY_MEDICINES,
+                raw
+            )
+            .putLong(
+                KEY_NEXT_ID,
+                obj.optLong(
+                    "nextId",
+                    1L
+                )
+            )
+            .apply()
+    }
+
     private fun saveMedicines(
         medicines: List<Medicine>
     ) {
 
-        val array = JSONArray()
+        val array =
+            JSONArray()
 
         medicines.forEach { medicine ->
 
-            val item = JSONObject()
+            array.put(
 
-            item.put("id", medicine.id)
-            item.put("name", medicine.name)
-            item.put(
-                "supplier",
-                medicine.defaultSupplier
-            )
-            item.put(
-                "quantity",
-                medicine.defaultQuantity
-            )
-            item.put(
-                "notes",
-                medicine.notes
-            )
+                JSONObject().apply {
 
-            array.put(item)
+                    put(
+                        "id",
+                        medicine.id
+                    )
+
+                    put(
+                        "name",
+                        medicine.name
+                    )
+
+                    put(
+                        "supplier",
+                        medicine.defaultSupplier
+                    )
+
+                    put(
+                        "quantity",
+                        medicine.defaultQuantity
+                    )
+
+                    put(
+                        "notes",
+                        medicine.notes
+                    )
+                }
+            )
         }
 
-        preferences.edit()
+        preferences
+            .edit()
             .putString(
                 KEY_MEDICINES,
                 array.toString()
@@ -183,15 +301,16 @@ class MedicineStorage(context: Context) {
             .apply()
     }
 
-    // إنشاء رقم خاص لكل علاج
     private fun getNextId(): Long {
 
-        val current = preferences.getLong(
-            KEY_NEXT_ID,
-            1L
-        )
+        val current =
+            preferences.getLong(
+                KEY_NEXT_ID,
+                1L
+            )
 
-        preferences.edit()
+        preferences
+            .edit()
             .putLong(
                 KEY_NEXT_ID,
                 current + 1
