@@ -6,71 +6,59 @@ import org.json.JSONObject
 
 class OrderStorage(context: Context) {
 
-    private val preferences = context.getSharedPreferences(
-        "talabati_daily_order",
-        Context.MODE_PRIVATE
-    )
+    private val preferences =
+        context.getSharedPreferences(
+            "talabati_daily_order",
+            Context.MODE_PRIVATE
+        )
 
     companion object {
         private const val KEY_ORDER_ITEMS = "order_items"
         private const val KEY_CURRENT_INDEX = "current_index"
+        private const val KEY_HISTORY = "order_history"
+
+        private const val THIRTY_DAYS =
+            30L * 24L * 60L * 60L * 1000L
     }
 
-    // جلب الطلبية الحالية
     fun getOrderItems(): MutableList<OrderItem> {
 
-        val json = preferences.getString(
-            KEY_ORDER_ITEMS,
-            null
-        ) ?: return mutableListOf()
+        val json =
+            preferences.getString(
+                KEY_ORDER_ITEMS,
+                null
+            ) ?: "[]"
 
-        return try {
-
-            val array = JSONArray(json)
-            val items = mutableListOf<OrderItem>()
-
-            for (i in 0 until array.length()) {
-
-                val obj = array.getJSONObject(i)
-
-                items.add(
-                    OrderItem(
-                        medicineId = obj.optLong("medicineId"),
-                        medicineName = obj.optString("medicineName"),
-                        quantity = obj.optInt("quantity"),
-                        supplier = obj.optString("supplier"),
-                        notes = obj.optString("notes")
-                    )
-                )
-            }
-
-            items
-
-        } catch (e: Exception) {
-            mutableListOf()
-        }
+        return decodeItems(json)
     }
 
-    // إضافة أو تحديث علاج داخل الطلبية
-    fun saveOrderItem(item: OrderItem) {
+    fun saveOrderItem(
+        item: OrderItem
+    ) {
 
-        val items = getOrderItems()
+        val items =
+            getOrderItems()
 
-        val index = items.indexOfFirst {
-            it.medicineId == item.medicineId
-        }
+        val index =
+            items.indexOfFirst {
+                it.medicineId == item.medicineId
+            }
 
         if (index >= 0) {
 
             if (item.quantity <= 0) {
+
                 items.removeAt(index)
+
             } else {
+
                 items[index] = item
             }
 
         } else {
 
             if (item.quantity > 0) {
+
                 items.add(item)
             }
         }
@@ -78,10 +66,12 @@ class OrderStorage(context: Context) {
         saveOrderItems(items)
     }
 
-    // حذف مادة من الطلبية
-    fun removeOrderItem(medicineId: Long) {
+    fun removeOrderItem(
+        medicineId: Long
+    ) {
 
-        val items = getOrderItems()
+        val items =
+            getOrderItems()
 
         items.removeAll {
             it.medicineId == medicineId
@@ -90,57 +80,12 @@ class OrderStorage(context: Context) {
         saveOrderItems(items)
     }
 
-    // حفظ القائمة كاملة
-    private fun saveOrderItems(
-        items: List<OrderItem>
+    fun saveCurrentIndex(
+        index: Int
     ) {
 
-        val array = JSONArray()
-
-        items.forEach { item ->
-
-            val obj = JSONObject()
-
-            obj.put(
-                "medicineId",
-                item.medicineId
-            )
-
-            obj.put(
-                "medicineName",
-                item.medicineName
-            )
-
-            obj.put(
-                "quantity",
-                item.quantity
-            )
-
-            obj.put(
-                "supplier",
-                item.supplier
-            )
-
-            obj.put(
-                "notes",
-                item.notes
-            )
-
-            array.put(obj)
-        }
-
-        preferences.edit()
-            .putString(
-                KEY_ORDER_ITEMS,
-                array.toString()
-            )
-            .apply()
-    }
-
-    // حفظ رقم العلاج الذي وصلنا إليه
-    fun saveCurrentIndex(index: Int) {
-
-        preferences.edit()
+        preferences
+            .edit()
             .putInt(
                 KEY_CURRENT_INDEX,
                 index
@@ -148,7 +93,6 @@ class OrderStorage(context: Context) {
             .apply()
     }
 
-    // معرفة أين توقفنا
     fun getCurrentIndex(): Int {
 
         return preferences.getInt(
@@ -157,16 +101,15 @@ class OrderStorage(context: Context) {
         )
     }
 
-    // عدد المواد المطلوبة
     fun getOrderCount(): Int {
 
         return getOrderItems().size
     }
 
-    // مسح الطلبية وبدء طلبية جديدة
     fun clearOrder() {
 
-        preferences.edit()
+        preferences
+            .edit()
             .remove(KEY_ORDER_ITEMS)
             .putInt(
                 KEY_CURRENT_INDEX,
@@ -175,94 +118,428 @@ class OrderStorage(context: Context) {
             .apply()
     }
 
-    // طلبية أمازون فقط
-    fun getAmazonItems(): List<OrderItem> {
+    fun completeCurrentOrder(): Boolean {
 
-        return getOrderItems().filter {
-            it.supplier.equals(
-                "أمازون",
-                ignoreCase = true
-            )
-        }
-    }
-
-    // طلبية راية فقط
-    fun getRayaItems(): List<OrderItem> {
-
-        return getOrderItems().filter {
-            it.supplier.equals(
-                "راية",
-                ignoreCase = true
-            )
-        }
-    }
-
-    // تجهيز نص الطلبية للنسخ
-    fun buildOrderText(): String {
-
-        val items = getOrderItems()
+        val items =
+            getOrderItems()
 
         if (items.isEmpty()) {
+            return false
+        }
+
+        val history =
+            getHistoryArray()
+
+        val completedOrder =
+            JSONObject().apply {
+
+                put(
+                    "timestamp",
+                    System.currentTimeMillis()
+                )
+
+                put(
+                    "items",
+                    itemsToArray(items)
+                )
+            }
+
+        history.put(
+            completedOrder
+        )
+
+        preferences
+            .edit()
+            .putString(
+                KEY_HISTORY,
+                history.toString()
+            )
+            .remove(
+                KEY_ORDER_ITEMS
+            )
+            .putInt(
+                KEY_CURRENT_INDEX,
+                0
+            )
+            .apply()
+
+        return true
+    }
+
+    fun getMonthlyTotals(): Map<Long, Int> {
+
+        val cutoff =
+            System.currentTimeMillis() -
+                    THIRTY_DAYS
+
+        val totals =
+            linkedMapOf<Long, Int>()
+
+        val history =
+            getHistoryArray()
+
+        for (
+            i in 0 until history.length()
+        ) {
+
+            val order =
+                history.optJSONObject(i)
+                    ?: continue
+
+            val timestamp =
+                order.optLong(
+                    "timestamp"
+                )
+
+            if (
+                timestamp < cutoff
+            ) {
+                continue
+            }
+
+            val items =
+                order.optJSONArray(
+                    "items"
+                ) ?: continue
+
+            for (
+                j in 0 until items.length()
+            ) {
+
+                val item =
+                    items.optJSONObject(j)
+                        ?: continue
+
+                val medicineId =
+                    item.optLong(
+                        "medicineId"
+                    )
+
+                val quantity =
+                    item.optInt(
+                        "quantity"
+                    )
+
+                totals[medicineId] =
+                    (totals[medicineId] ?: 0) +
+                            quantity
+            }
+        }
+
+        return totals
+    }
+
+    fun getCompletedOrderCount(): Int {
+
+        return getHistoryArray().length()
+    }
+
+    fun buildOrderText(): String {
+
+        val items =
+            getOrderItems()
+
+        if (items.isEmpty()) {
+
             return "لا توجد مواد في الطلبية"
         }
 
-        val amazon = items.filter {
-            it.supplier == "أمازون"
-        }
+        val text =
+            StringBuilder()
 
-        val raya = items.filter {
-            it.supplier == "راية"
-        }
-
-        val text = StringBuilder()
-
-        if (amazon.isNotEmpty()) {
-
-            text.append("طلبية أمازون\n")
-            text.append("--------------------\n")
-
-            amazon.forEach { item ->
-
-                text.append(item.medicineName)
-                text.append(" عدد ")
-                text.append(item.quantity)
-
-                if (item.notes.isNotBlank()) {
-                    text.append(" - ")
-                    text.append(item.notes)
-                }
-
-                text.append("\n")
-            }
-        }
-
-        if (
-            amazon.isNotEmpty() &&
-            raya.isNotEmpty()
+        fun addSection(
+            title: String,
+            list: List<OrderItem>
         ) {
-            text.append("\n")
-        }
 
-        if (raya.isNotEmpty()) {
+            if (list.isEmpty()) {
+                return
+            }
 
-            text.append("طلبية راية\n")
-            text.append("--------------------\n")
+            if (text.isNotEmpty()) {
 
-            raya.forEach { item ->
+                text.append(
+                    "\n\n"
+                )
+            }
 
-                text.append(item.medicineName)
-                text.append(" عدد ")
-                text.append(item.quantity)
+            text.append(title)
 
-                if (item.notes.isNotBlank()) {
-                    text.append(" - ")
-                    text.append(item.notes)
+            text.append(
+                "\n--------------------\n"
+            )
+
+            list.forEach { item ->
+
+                text.append(
+                    item.medicineName
+                )
+
+                text.append(
+                    " عدد "
+                )
+
+                text.append(
+                    item.quantity
+                )
+
+                if (
+                    item.notes.isNotBlank()
+                ) {
+
+                    text.append(
+                        " - "
+                    )
+
+                    text.append(
+                        item.notes
+                    )
                 }
 
-                text.append("\n")
+                text.append(
+                    "\n"
+                )
             }
         }
 
-        return text.toString().trim()
+        addSection(
+            "طلبية أمازون",
+            items.filter {
+
+                it.supplier.equals(
+                    "أمازون",
+                    ignoreCase = true
+                )
+            }
+        )
+
+        addSection(
+            "طلبية راية",
+            items.filter {
+
+                it.supplier.equals(
+                    "راية",
+                    ignoreCase = true
+                )
+            }
+        )
+
+        addSection(
+            "بدون مذخر",
+            items.filter {
+
+                !it.supplier.equals(
+                    "أمازون",
+                    ignoreCase = true
+                ) &&
+
+                !it.supplier.equals(
+                    "راية",
+                    ignoreCase = true
+                )
+            }
+        )
+
+        return text
+            .toString()
+            .trim()
+    }
+
+    fun exportJson(): JSONObject {
+
+        return JSONObject().apply {
+
+            put(
+                "currentItems",
+                preferences.getString(
+                    KEY_ORDER_ITEMS,
+                    "[]"
+                ) ?: "[]"
+            )
+
+            put(
+                "currentIndex",
+                getCurrentIndex()
+            )
+
+            put(
+                "history",
+                preferences.getString(
+                    KEY_HISTORY,
+                    "[]"
+                ) ?: "[]"
+            )
+        }
+    }
+
+    fun importJson(
+        obj: JSONObject
+    ) {
+
+        val currentItems =
+            obj.optString(
+                "currentItems",
+                "[]"
+            )
+
+        val history =
+            obj.optString(
+                "history",
+                "[]"
+            )
+
+        // التأكد من صحة البيانات
+        JSONArray(currentItems)
+        JSONArray(history)
+
+        preferences
+            .edit()
+            .putString(
+                KEY_ORDER_ITEMS,
+                currentItems
+            )
+            .putInt(
+                KEY_CURRENT_INDEX,
+                obj.optInt(
+                    "currentIndex",
+                    0
+                )
+            )
+            .putString(
+                KEY_HISTORY,
+                history
+            )
+            .apply()
+    }
+
+    private fun getHistoryArray(): JSONArray {
+
+        return try {
+
+            JSONArray(
+                preferences.getString(
+                    KEY_HISTORY,
+                    "[]"
+                ) ?: "[]"
+            )
+
+        } catch (
+            _: Exception
+        ) {
+
+            JSONArray()
+        }
+    }
+
+    private fun saveOrderItems(
+        items: List<OrderItem>
+    ) {
+
+        preferences
+            .edit()
+            .putString(
+                KEY_ORDER_ITEMS,
+                itemsToArray(items)
+                    .toString()
+            )
+            .apply()
+    }
+
+    private fun itemsToArray(
+        items: List<OrderItem>
+    ): JSONArray {
+
+        val array =
+            JSONArray()
+
+        items.forEach { item ->
+
+            array.put(
+
+                JSONObject().apply {
+
+                    put(
+                        "medicineId",
+                        item.medicineId
+                    )
+
+                    put(
+                        "medicineName",
+                        item.medicineName
+                    )
+
+                    put(
+                        "quantity",
+                        item.quantity
+                    )
+
+                    put(
+                        "supplier",
+                        item.supplier
+                    )
+
+                    put(
+                        "notes",
+                        item.notes
+                    )
+                }
+            )
+        }
+
+        return array
+    }
+
+    private fun decodeItems(
+        json: String
+    ): MutableList<OrderItem> {
+
+        return try {
+
+            val array =
+                JSONArray(json)
+
+            MutableList(
+                array.length()
+            ) { index ->
+
+                val item =
+                    array.getJSONObject(
+                        index
+                    )
+
+                OrderItem(
+                    medicineId =
+                        item.optLong(
+                            "medicineId"
+                        ),
+
+                    medicineName =
+                        item.optString(
+                            "medicineName"
+                        ),
+
+                    quantity =
+                        item.optInt(
+                            "quantity"
+                        ),
+
+                    supplier =
+                        item.optString(
+                            "supplier"
+                        ),
+
+                    notes =
+                        item.optString(
+                            "notes"
+                        )
+                )
+            }
+
+        } catch (
+            _: Exception
+        ) {
+
+            mutableListOf()
+        }
     }
 }
